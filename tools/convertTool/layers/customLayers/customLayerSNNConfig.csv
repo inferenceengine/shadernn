@@ -1,0 +1,3 @@
+customLayerName,supportProgram,defaultProgram,isFusible,fusibleWith,shaderFilePath,programFilePath,kerasDefFilePath
+xyz,FragmentShader,FragmentShader,FALSE,,abc.glsl,abc.cpp,
+zxc,FragmentShader,FragmentShader,FALSE,,cde.glsl,bnm.cpp,

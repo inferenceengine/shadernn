@@ -1,0 +1,76 @@
+7767517
+74 82
+Input                    input_1                                 0 1  input_1_blob 0=32 1=32 2=3 
+Convolution              conv2d                                  1 1 input_1_blob conv2d_blob 0=64 1=7 2=1 3=2 4=3 5=1 6=9408 9=0 11=7 12=1 13=2 
+BatchNorm                batch_normalization                     1 1 conv2d_blob batch_normalization_blob 0=64 1=1.000000e-03 
+ReLU                     activation                              1 1 batch_normalization_blob activation_blob 0=0.000000e+00 1=0 
+Pooling                  max_pooling2d                           1 1 activation_blob max_pooling2d_blob 0=0 1=3 11=3 2=2 12=2 3=0 4=0 5=2 
+Split                    max_pooling2d_Split                     1 2 max_pooling2d_blob max_pooling2d_Split_blob_idx_0 max_pooling2d_Split_blob_idx_1 
+Convolution              conv2d_1                                1 1 max_pooling2d_Split_blob_idx_0 conv2d_1_blob 0=64 1=3 2=1 3=1 4=1 5=1 6=36864 9=0 11=3 12=1 13=1 
+Convolution              conv2d_2                                1 1 conv2d_1_blob conv2d_2_blob 0=64 1=3 2=1 3=1 4=1 5=1 6=36864 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_1                   1 1 conv2d_2_blob batch_normalization_1_blob 0=64 1=1.000000e-03 
+BinaryOp                 add                                     2 1 batch_normalization_1_blob max_pooling2d_Split_blob_idx_1 add_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_1                            1 1 add_blob activation_1_blob 0=0.000000e+00 1=0 
+Split                    activation_1_Split                      1 2 activation_1_blob activation_1_Split_blob_idx_0 activation_1_Split_blob_idx_1 
+Convolution              conv2d_3                                1 1 activation_1_Split_blob_idx_0 conv2d_3_blob 0=64 1=3 2=1 3=1 4=1 5=1 6=36864 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_2                   1 1 conv2d_3_blob batch_normalization_2_blob 0=64 1=1.000000e-03 
+ReLU                     activation_2                            1 1 batch_normalization_2_blob activation_2_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_4                                1 1 activation_2_blob conv2d_4_blob 0=64 1=3 2=1 3=1 4=1 5=1 6=36864 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_3                   1 1 conv2d_4_blob batch_normalization_3_blob 0=64 1=1.000000e-03 
+BinaryOp                 add_1                                   2 1 batch_normalization_3_blob activation_1_Split_blob_idx_1 add_1_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_3                            1 1 add_1_blob activation_3_blob 0=0.000000e+00 1=0 
+Split                    activation_3_Split                      1 2 activation_3_blob activation_3_Split_blob_idx_0 activation_3_Split_blob_idx_1 
+Convolution              conv2d_5                                1 1 activation_3_Split_blob_idx_0 conv2d_5_blob 0=128 1=3 2=1 3=2 4=1 5=1 6=73728 9=0 11=3 12=1 13=2 
+BatchNorm                batch_normalization_4                   1 1 conv2d_5_blob batch_normalization_4_blob 0=128 1=1.000000e-03 
+ReLU                     activation_4                            1 1 batch_normalization_4_blob activation_4_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_6                                1 1 activation_4_blob conv2d_6_blob 0=128 1=3 2=1 3=1 4=1 5=1 6=147456 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_5                   1 1 conv2d_6_blob batch_normalization_5_blob 0=128 1=1.000000e-03 
+Convolution              conv2d_7                                1 1 activation_3_Split_blob_idx_1 conv2d_7_blob 0=128 1=1 2=1 3=2 4=0 5=1 6=8192 9=0 11=1 12=1 13=2 
+BinaryOp                 add_2                                   2 1 conv2d_7_blob batch_normalization_5_blob add_2_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_5                            1 1 add_2_blob activation_5_blob 0=0.000000e+00 1=0 
+Split                    activation_5_Split                      1 2 activation_5_blob activation_5_Split_blob_idx_0 activation_5_Split_blob_idx_1 
+Convolution              conv2d_8                                1 1 activation_5_Split_blob_idx_0 conv2d_8_blob 0=128 1=3 2=1 3=1 4=1 5=1 6=147456 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_6                   1 1 conv2d_8_blob batch_normalization_6_blob 0=128 1=1.000000e-03 
+ReLU                     activation_6                            1 1 batch_normalization_6_blob activation_6_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_9                                1 1 activation_6_blob conv2d_9_blob 0=128 1=3 2=1 3=1 4=1 5=1 6=147456 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_7                   1 1 conv2d_9_blob batch_normalization_7_blob 0=128 1=1.000000e-03 
+BinaryOp                 add_3                                   2 1 batch_normalization_7_blob activation_5_Split_blob_idx_1 add_3_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_7                            1 1 add_3_blob activation_7_blob 0=0.000000e+00 1=0 
+Split                    activation_7_Split                      1 2 activation_7_blob activation_7_Split_blob_idx_0 activation_7_Split_blob_idx_1 
+Convolution              conv2d_10                               1 1 activation_7_Split_blob_idx_0 conv2d_10_blob 0=256 1=3 2=1 3=2 4=1 5=1 6=294912 9=0 11=3 12=1 13=2 
+BatchNorm                batch_normalization_8                   1 1 conv2d_10_blob batch_normalization_8_blob 0=256 1=1.000000e-03 
+ReLU                     activation_8                            1 1 batch_normalization_8_blob activation_8_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_11                               1 1 activation_8_blob conv2d_11_blob 0=256 1=3 2=1 3=1 4=1 5=1 6=589824 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_9                   1 1 conv2d_11_blob batch_normalization_9_blob 0=256 1=1.000000e-03 
+Convolution              conv2d_12                               1 1 activation_7_Split_blob_idx_1 conv2d_12_blob 0=256 1=1 2=1 3=2 4=0 5=1 6=32768 9=0 11=1 12=1 13=2 
+BinaryOp                 add_4                                   2 1 conv2d_12_blob batch_normalization_9_blob add_4_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_9                            1 1 add_4_blob activation_9_blob 0=0.000000e+00 1=0 
+Split                    activation_9_Split                      1 2 activation_9_blob activation_9_Split_blob_idx_0 activation_9_Split_blob_idx_1 
+Convolution              conv2d_13                               1 1 activation_9_Split_blob_idx_0 conv2d_13_blob 0=256 1=3 2=1 3=1 4=1 5=1 6=589824 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_10                  1 1 conv2d_13_blob batch_normalization_10_blob 0=256 1=1.000000e-03 
+ReLU                     activation_10                           1 1 batch_normalization_10_blob activation_10_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_14                               1 1 activation_10_blob conv2d_14_blob 0=256 1=3 2=1 3=1 4=1 5=1 6=589824 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_11                  1 1 conv2d_14_blob batch_normalization_11_blob 0=256 1=1.000000e-03 
+BinaryOp                 add_5                                   2 1 batch_normalization_11_blob activation_9_Split_blob_idx_1 add_5_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_11                           1 1 add_5_blob activation_11_blob 0=0.000000e+00 1=0 
+Split                    activation_11_Split                     1 2 activation_11_blob activation_11_Split_blob_idx_0 activation_11_Split_blob_idx_1 
+Convolution              conv2d_15                               1 1 activation_11_Split_blob_idx_0 conv2d_15_blob 0=512 1=3 2=1 3=2 4=1 5=1 6=1179648 9=0 11=3 12=1 13=2 
+BatchNorm                batch_normalization_12                  1 1 conv2d_15_blob batch_normalization_12_blob 0=512 1=1.000000e-03 
+ReLU                     activation_12                           1 1 batch_normalization_12_blob activation_12_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_16                               1 1 activation_12_blob conv2d_16_blob 0=512 1=3 2=1 3=1 4=1 5=1 6=2359296 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_13                  1 1 conv2d_16_blob batch_normalization_13_blob 0=512 1=1.000000e-03 
+Convolution              conv2d_17                               1 1 activation_11_Split_blob_idx_1 conv2d_17_blob 0=512 1=1 2=1 3=2 4=0 5=1 6=131072 9=0 11=1 12=1 13=2 
+BinaryOp                 add_6                                   2 1 conv2d_17_blob batch_normalization_13_blob add_6_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_13                           1 1 add_6_blob activation_13_blob 0=0.000000e+00 1=0 
+Split                    activation_13_Split                     1 2 activation_13_blob activation_13_Split_blob_idx_0 activation_13_Split_blob_idx_1 
+Convolution              conv2d_18                               1 1 activation_13_Split_blob_idx_0 conv2d_18_blob 0=512 1=3 2=1 3=1 4=1 5=1 6=2359296 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_14                  1 1 conv2d_18_blob batch_normalization_14_blob 0=512 1=1.000000e-03 
+ReLU                     activation_14                           1 1 batch_normalization_14_blob activation_14_blob 0=0.000000e+00 1=0 
+Convolution              conv2d_19                               1 1 activation_14_blob conv2d_19_blob 0=512 1=3 2=1 3=1 4=1 5=1 6=2359296 9=0 11=3 12=1 13=1 
+BatchNorm                batch_normalization_15                  1 1 conv2d_19_blob batch_normalization_15_blob 0=512 1=1.000000e-03 
+BinaryOp                 add_7                                   2 1 batch_normalization_15_blob activation_13_Split_blob_idx_1 add_7_blob 0=0 1=0 2=0.000000e+00 
+ReLU                     activation_15                           1 1 add_7_blob activation_15_blob 0=0.000000e+00 1=0 
+Pooling                  average_pooling2d                       1 1 activation_15_blob average_pooling2d_blob 0=1 1=1 11=1 2=1 12=1 3=0 4=0 5=1 
+Reshape                  flatten                                 1 1 average_pooling2d_blob flatten_blob 0=-1 1=-233 2=-233 3=1 
+InnerProduct             dense                                   1 1 flatten_blob dense_blob 0=10 1=1 2=5120 9=0 
+Softmax                  dense_Softmax                           1 1 dense_blob dense_Softmax_blob 0=0 

@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (C) 2020 - Present, OPPO Mobile Comm Corp., Ltd. All rights reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~       http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  ~
+  -->
+<menu xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group
+        android:id="@+id/action_bar_items">
+        <item
+            android:id="@+id/open_settings"
+            android:title="@string/settings"
+            android:icon="@drawable/ic_open_settings"
+            app:showAsAction="ifRoom" />
+        <item
+            android:id="@+id/open_from_file"
+            android:title="@string/video"
+            android:icon="@drawable/ic_open_from_file"
+            app:showAsAction="ifRoom"/>
+    </group>
+
+    <item
+        android:id="@+id/hide_show_pipelines"
+        android:title="Hide/Show Pipelines"
+        app:showAsAction="never"
+        android:checkable="true">
+    </item>
+    <group
+        android:id="@+id/pipeline_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/clearance_1_frame_pipeline"
+            android:title="1 Frame Pipeline"
+            android:checked="true">
+        </item>
+        <item
+            android:id="@+id/clearance_2_frame_pipeline"
+            android:title="2 Frame Pipeline">
+        </item>
+        <item
+            android:id="@+id/hybrid_dl_pipeline"
+            android:title="Hybrid Deep Learning"
+            android:visible="false">
+        </item>
+    </group>
+
+    <item
+        android:id="@+id/divider_1"
+        android:title="*******************************"/>
+
+    <item
+        android:id="@+id/hide_show_stage_1"
+        android:title="Hide/Show Denoisers"
+        app:showAsAction="never"
+        android:checkable="true">
+    </item>
+
+    <group
+        android:id="@+id/clearance_1_frame_stage_0_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/clearance_1_frame_no_denoise"
+            android:title="No Denoise"
+            android:checked="true">
+        </item>
+        <item
+            android:id="@+id/clearance_1_frame_aidenoise"
+            android:title="AI Denoise"
+            android:checked="false">
+        </item>
+        <item
+            android:id="@+id/clearance_1_frame_spatialdenoise"
+            android:title="Spatial Denoise"
+            android:checked="false">
+        </item>
+    </group>
+
+    <group
+        android:id="@+id/clearance_1_frame_stage_1_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/divider_0"
+            android:title="------------------------------------------"
+            android:checkable="false"/>
+        <item
+            android:id="@+id/clearance_fragment_shader"
+            android:title="Fragment Shader"></item>
+        <item
+            android:id="@+id/clearance_compute_shader"
+            android:title="Compute Shader"></item>
+    </group>
+
+    <group
+        android:id="@+id/clearance_1_frame_stage_1_additions"
+        android:checkableBehavior="all"
+        android:visible="false">
+        <item
+            android:id="@+id/clearance_toggle_ssbo"
+            android:title="Shader Storage Buffer Object">
+        </item>
+    </group>
+    <group
+        android:id="@+id/clearance_2_frame_stage_1_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/clearance_2_frame_no_denoise"
+            android:title="No Denoise"
+            android:checked="true">
+        </item>
+    </group>
+
+
+    <group
+        android:id="@+id/hybrid_dl_stage_0_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/hybrid_dl_no_denoiser"
+            android:title="No Denoise"
+            android:checked="true">
+        </item>
+        <item
+            android:id="@+id/hybrid_dl_aidenoise"
+            android:title="AI Denoise"
+            android:checked="false">
+        </item>
+        <item
+            android:id="@+id/hybrid_dl_spatialdenoise"
+            android:title="Spatial Denoise"
+            android:checked="false">
+        </item>
+    </group>
+
+    <group
+        android:id="@+id/hybrid_dl_stage_1_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/hybrid_dl_fragment_shader"
+            android:title="Fragment Shader">
+        </item>
+        <item
+            android:id="@+id/hybrid_dl_compute_shader"
+            android:title="Compute Shader">
+        </item>
+    </group>
+    <group
+        android:id="@+id/hybrid_dl_stage_1_additions"
+        android:checkableBehavior="all"
+        android:visible="false">
+        <item
+            android:id="@+id/hybrid_dl_toggle_ssbo"
+            android:title="Shader Storage Buffer Object">
+        </item>
+    </group>
+
+    <group
+        android:id="@+id/standalone_alg"
+        android:checkableBehavior="all"
+        android:visible="false">
+        <item
+            android:id="@+id/ai_denoise_clearance_switch"
+            android:title="AI Denoise Clearance"
+            app:showAsAction="never"/>
+        <item
+            android:id="@+id/ai_denoise_clearance_dsp_switch"
+            android:title="AI Denoise Clearance on DSP"
+            app:showAsAction="never"/>
+        <item
+            android:id="@+id/ai_denoise_switch"
+            android:title="AI Denoise"
+            app:showAsAction="never"/>
+    </group>
+
+    <group
+        android:id="@+id/ai_denoises"
+        android:checkableBehavior="all"
+        android:visible="false">
+        <item
+            android:id="@+id/ai_denoise"
+            android:title="@string/ai_denoise"
+            android:visible="false"
+            app:showAsAction="never"/>
+    </group>
+    <item
+        android:id="@+id/divider3"
+        android:title="*******************************" />
+    <item
+        android:id="@+id/basic_cnn_additions"
+        android:checkable="true"
+        android:title="Basic Alex Net"
+        android:visible="true" />
+    <item
+        android:id="@+id/divider_3"
+        android:title="*******************************"/>
+
+    <item
+        android:id="@+id/hide_show_classifiers"
+        android:title="Hide/Show Classifiers"
+        app:showAsAction="never"
+        android:checkable="true">
+    </item>
+
+    <group
+        android:id="@+id/classifiers_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item android:id="@+id/no_classifier"
+            android:title="@string/no_classifier"
+            android:checked="true">
+        </item>
+        <item android:id="@+id/resnet18_classifier"
+            android:title="@string/resnet18_classifier">
+        </item>
+         <item android:id="@+id/mobilenetv2_classifier"
+            android:title="@string/mobilenetv2_classifier">
+        </item>
+    </group>
+
+    <group
+        android:id="@+id/classifier_shader_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/divider_4"
+            android:title="------------------------------------------"
+            android:checkable="false"/>
+        <item
+            android:id="@+id/classifier_fragment_shader"
+            android:title="Fragment Shader">
+        </item>
+        <item
+            android:id="@+id/classifier_compute_shader"
+            android:title="Compute Shader">
+        </item>
+    </group>
+
+    <item
+        android:id="@+id/divider_5"
+        android:title="*******************************"/>
+
+    <item
+        android:id="@+id/hide_show_detectiions"
+        android:title="Hide/Show Detections"
+        app:showAsAction="never"
+        android:checkable="true">
+    </item>
+
+    <group
+        android:id="@+id/detection_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item android:id="@+id/no_detection"
+            android:title="@string/no_detection"
+            android:checked="true">
+        </item>
+        <item android:id="@+id/yolov3_detection"
+            android:title="@string/yolov3_detection">
+        </item>
+    </group>
+
+    <group
+        android:id="@+id/detection_shader_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item
+            android:id="@+id/divider_6"
+            android:title="------------------------------------------"
+            android:checkable="false"/>
+        <item
+            android:id="@+id/detection_fragment_shader"
+            android:title="Fragment Shader">
+        </item>
+        <item
+            android:id="@+id/detection_compute_shader"
+            android:title="Compute Shader">
+        </item>
+    </group>
+
+    <item
+        android:id="@+id/divider_7"
+        android:title="*******************************"/>
+
+    <item
+        android:id="@+id/style_transfer"
+        android:title="Style Transfer"
+        app:showAsAction="never"
+        android:checkable="true">
+    </item>
+
+    <group
+        android:id="@+id/style_transfer_choices"
+        android:checkableBehavior="single"
+        android:visible="false">
+        <item android:id="@+id/no_style"
+            android:title="@string/no_style"
+            android:checked="true">
+        </item>
+        <item android:id="@+id/style_candy"
+            android:title="@string/style_candy">
+        </item>
+        <item android:id="@+id/style_mosaic"
+            android:title="@string/style_mosaic">
+        </item>
+        <item android:id="@+id/style_pointilism"
+            android:title="@string/style_pointilism">
+        </item>
+        <item android:id="@+id/style_rain_princess"
+            android:title="@string/style_rain_princess">
+        </item>
+        <item android:id="@+id/style_udnie"
+            android:title="@string/style_udnie">
+        </item>
+    </group>
+
+</menu>

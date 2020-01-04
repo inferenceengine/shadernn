@@ -1,0 +1,202 @@
+7767517
+199 209
+Input                    input_1                                 0 1  input_1_blob 0=-1 1=-1 2=3 
+Convolution              Conv1                                   1 1 input_1_blob Conv1_blob 0=32 1=3 2=1 3=2 4=1 5=0 6=864 9=0 11=3 12=1 13=2 
+BatchNorm                bn_Conv1                                1 1 Conv1_blob bn_Conv1_blob 0=32 1=1.000000e-03 
+Clip                     Conv1_relu_Clip                         1 1 bn_Conv1_blob Conv1_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     Conv1_relu                              1 1 Conv1_relu_Clip_blob Conv1_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     expanded_conv_depthwise                 1 1 Conv1_relu_blob expanded_conv_depthwise_blob 0=32 1=3 2=1 3=1 4=-233 5=0 6=288 7=32 11=3 12=1 13=1 
+BatchNorm                expanded_conv_depthwise_BN              1 1 expanded_conv_depthwise_blob expanded_conv_depthwise_BN_blob 0=32 1=1.000000e-03 
+Clip                     expanded_conv_depthwise_relu_Clip       1 1 expanded_conv_depthwise_BN_blob expanded_conv_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     expanded_conv_depthwise_relu            1 1 expanded_conv_depthwise_relu_Clip_blob expanded_conv_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              expanded_conv_project                   1 1 expanded_conv_depthwise_relu_blob expanded_conv_project_blob 0=16 1=1 2=1 3=1 4=-233 5=0 6=512 9=0 11=1 12=1 13=1 
+BatchNorm                expanded_conv_project_BN                1 1 expanded_conv_project_blob expanded_conv_project_BN_blob 0=16 1=1.000000e-03 
+Convolution              block_1_expand                          1 1 expanded_conv_project_BN_blob block_1_expand_blob 0=96 1=1 2=1 3=1 4=0 5=0 6=1536 9=0 11=1 12=1 13=1 
+BatchNorm                block_1_expand_BN                       1 1 block_1_expand_blob block_1_expand_BN_blob 0=96 1=1.000000e-03 
+Clip                     block_1_expand_relu_Clip                1 1 block_1_expand_BN_blob block_1_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_1_expand_relu                     1 1 block_1_expand_relu_Clip_blob block_1_expand_relu_blob 0=0.000000e+00 1=0 
+Padding                  block_1_pad                             1 1 block_1_expand_relu_blob block_1_pad_blob 0=0 1=1 2=0 3=1 
+ConvolutionDepthWise     block_1_depthwise                       1 1 block_1_pad_blob block_1_depthwise_blob 0=96 1=3 2=1 3=2 4=0 5=0 6=864 7=96 11=3 12=1 13=2 
+BatchNorm                block_1_depthwise_BN                    1 1 block_1_depthwise_blob block_1_depthwise_BN_blob 0=96 1=1.000000e-03 
+Clip                     block_1_depthwise_relu_Clip             1 1 block_1_depthwise_BN_blob block_1_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_1_depthwise_relu                  1 1 block_1_depthwise_relu_Clip_blob block_1_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_1_project                         1 1 block_1_depthwise_relu_blob block_1_project_blob 0=24 1=1 2=1 3=1 4=0 5=0 6=2304 9=0 11=1 12=1 13=1 
+BatchNorm                block_1_project_BN                      1 1 block_1_project_blob block_1_project_BN_blob 0=24 1=1.000000e-03 
+Split                    block_1_project_BN_Split                1 2 block_1_project_BN_blob block_1_project_BN_Split_blob_idx_0 block_1_project_BN_Split_blob_idx_1 
+Convolution              block_2_expand                          1 1 block_1_project_BN_Split_blob_idx_0 block_2_expand_blob 0=144 1=1 2=1 3=1 4=0 5=0 6=3456 9=0 11=1 12=1 13=1 
+BatchNorm                block_2_expand_BN                       1 1 block_2_expand_blob block_2_expand_BN_blob 0=144 1=1.000000e-03 
+Clip                     block_2_expand_relu_Clip                1 1 block_2_expand_BN_blob block_2_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_2_expand_relu                     1 1 block_2_expand_relu_Clip_blob block_2_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_2_depthwise                       1 1 block_2_expand_relu_blob block_2_depthwise_blob 0=144 1=3 2=1 3=1 4=1 5=0 6=1296 7=144 11=3 12=1 13=1 
+BatchNorm                block_2_depthwise_BN                    1 1 block_2_depthwise_blob block_2_depthwise_BN_blob 0=144 1=1.000000e-03 
+Clip                     block_2_depthwise_relu_Clip             1 1 block_2_depthwise_BN_blob block_2_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_2_depthwise_relu                  1 1 block_2_depthwise_relu_Clip_blob block_2_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_2_project                         1 1 block_2_depthwise_relu_blob block_2_project_blob 0=24 1=1 2=1 3=1 4=0 5=0 6=3456 9=0 11=1 12=1 13=1 
+BatchNorm                block_2_project_BN                      1 1 block_2_project_blob block_2_project_BN_blob 0=24 1=1.000000e-03 
+BinaryOp                 block_2_add                             2 1 block_2_project_BN_blob block_1_project_BN_Split_blob_idx_1 block_2_add_blob 0=0 1=0 2=0.000000e+00 
+Convolution              block_3_expand                          1 1 block_2_add_blob block_3_expand_blob 0=144 1=1 2=1 3=1 4=0 5=0 6=3456 9=0 11=1 12=1 13=1 
+BatchNorm                block_3_expand_BN                       1 1 block_3_expand_blob block_3_expand_BN_blob 0=144 1=1.000000e-03 
+Clip                     block_3_expand_relu_Clip                1 1 block_3_expand_BN_blob block_3_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_3_expand_relu                     1 1 block_3_expand_relu_Clip_blob block_3_expand_relu_blob 0=0.000000e+00 1=0 
+Padding                  block_3_pad                             1 1 block_3_expand_relu_blob block_3_pad_blob 0=0 1=1 2=0 3=1 
+ConvolutionDepthWise     block_3_depthwise                       1 1 block_3_pad_blob block_3_depthwise_blob 0=144 1=3 2=1 3=2 4=0 5=0 6=1296 7=144 11=3 12=1 13=2 
+BatchNorm                block_3_depthwise_BN                    1 1 block_3_depthwise_blob block_3_depthwise_BN_blob 0=144 1=1.000000e-03 
+Clip                     block_3_depthwise_relu_Clip             1 1 block_3_depthwise_BN_blob block_3_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_3_depthwise_relu                  1 1 block_3_depthwise_relu_Clip_blob block_3_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_3_project                         1 1 block_3_depthwise_relu_blob block_3_project_blob 0=32 1=1 2=1 3=1 4=0 5=0 6=4608 9=0 11=1 12=1 13=1 
+BatchNorm                block_3_project_BN                      1 1 block_3_project_blob block_3_project_BN_blob 0=32 1=1.000000e-03 
+Split                    block_3_project_BN_Split                1 2 block_3_project_BN_blob block_3_project_BN_Split_blob_idx_0 block_3_project_BN_Split_blob_idx_1 
+Convolution              block_4_expand                          1 1 block_3_project_BN_Split_blob_idx_0 block_4_expand_blob 0=192 1=1 2=1 3=1 4=0 5=0 6=6144 9=0 11=1 12=1 13=1 
+BatchNorm                block_4_expand_BN                       1 1 block_4_expand_blob block_4_expand_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_4_expand_relu_Clip                1 1 block_4_expand_BN_blob block_4_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_4_expand_relu                     1 1 block_4_expand_relu_Clip_blob block_4_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_4_depthwise                       1 1 block_4_expand_relu_blob block_4_depthwise_blob 0=192 1=3 2=1 3=1 4=1 5=0 6=1728 7=192 11=3 12=1 13=1 
+BatchNorm                block_4_depthwise_BN                    1 1 block_4_depthwise_blob block_4_depthwise_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_4_depthwise_relu_Clip             1 1 block_4_depthwise_BN_blob block_4_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_4_depthwise_relu                  1 1 block_4_depthwise_relu_Clip_blob block_4_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_4_project                         1 1 block_4_depthwise_relu_blob block_4_project_blob 0=32 1=1 2=1 3=1 4=0 5=0 6=6144 9=0 11=1 12=1 13=1 
+BatchNorm                block_4_project_BN                      1 1 block_4_project_blob block_4_project_BN_blob 0=32 1=1.000000e-03 
+BinaryOp                 block_4_add                             2 1 block_4_project_BN_blob block_3_project_BN_Split_blob_idx_1 block_4_add_blob 0=0 1=0 2=0.000000e+00 
+Split                    block_4_add_Split                       1 2 block_4_add_blob block_4_add_Split_blob_idx_0 block_4_add_Split_blob_idx_1 
+Convolution              block_5_expand                          1 1 block_4_add_Split_blob_idx_0 block_5_expand_blob 0=192 1=1 2=1 3=1 4=0 5=0 6=6144 9=0 11=1 12=1 13=1 
+BatchNorm                block_5_expand_BN                       1 1 block_5_expand_blob block_5_expand_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_5_expand_relu_Clip                1 1 block_5_expand_BN_blob block_5_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_5_expand_relu                     1 1 block_5_expand_relu_Clip_blob block_5_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_5_depthwise                       1 1 block_5_expand_relu_blob block_5_depthwise_blob 0=192 1=3 2=1 3=1 4=1 5=0 6=1728 7=192 11=3 12=1 13=1 
+BatchNorm                block_5_depthwise_BN                    1 1 block_5_depthwise_blob block_5_depthwise_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_5_depthwise_relu_Clip             1 1 block_5_depthwise_BN_blob block_5_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_5_depthwise_relu                  1 1 block_5_depthwise_relu_Clip_blob block_5_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_5_project                         1 1 block_5_depthwise_relu_blob block_5_project_blob 0=32 1=1 2=1 3=1 4=-233 5=0 6=6144 9=0 11=1 12=1 13=1 
+BatchNorm                block_5_project_BN                      1 1 block_5_project_blob block_5_project_BN_blob 0=32 1=1.000000e-03 
+BinaryOp                 block_5_add                             2 1 block_5_project_BN_blob block_4_add_Split_blob_idx_1 block_5_add_blob 0=0 1=0 2=0.000000e+00 
+Convolution              block_6_expand                          1 1 block_5_add_blob block_6_expand_blob 0=192 1=1 2=1 3=1 4=0 5=0 6=6144 9=0 11=1 12=1 13=1 
+BatchNorm                block_6_expand_BN                       1 1 block_6_expand_blob block_6_expand_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_6_expand_relu_Clip                1 1 block_6_expand_BN_blob block_6_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_6_expand_relu                     1 1 block_6_expand_relu_Clip_blob block_6_expand_relu_blob 0=0.000000e+00 1=0 
+Padding                  block_6_pad                             1 1 block_6_expand_relu_blob block_6_pad_blob 0=0 1=1 2=0 3=1 
+ConvolutionDepthWise     block_6_depthwise                       1 1 block_6_pad_blob block_6_depthwise_blob 0=192 1=3 2=1 3=2 4=1 5=0 6=1728 7=192 11=3 12=1 13=2 
+BatchNorm                block_6_depthwise_BN                    1 1 block_6_depthwise_blob block_6_depthwise_BN_blob 0=192 1=1.000000e-03 
+Clip                     block_6_depthwise_relu_Clip             1 1 block_6_depthwise_BN_blob block_6_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_6_depthwise_relu                  1 1 block_6_depthwise_relu_Clip_blob block_6_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_6_project                         1 1 block_6_depthwise_relu_blob block_6_project_blob 0=64 1=1 2=1 3=1 4=-233 5=0 6=12288 9=0 11=1 12=1 13=1 
+BatchNorm                block_6_project_BN                      1 1 block_6_project_blob block_6_project_BN_blob 0=64 1=1.000000e-03 
+Split                    block_6_project_BN_Split                1 2 block_6_project_BN_blob block_6_project_BN_Split_blob_idx_0 block_6_project_BN_Split_blob_idx_1 
+Convolution              block_7_expand                          1 1 block_6_project_BN_Split_blob_idx_0 block_7_expand_blob 0=384 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_7_expand_BN                       1 1 block_7_expand_blob block_7_expand_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_7_expand_relu_Clip                1 1 block_7_expand_BN_blob block_7_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_7_expand_relu                     1 1 block_7_expand_relu_Clip_blob block_7_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_7_depthwise                       1 1 block_7_expand_relu_blob block_7_depthwise_blob 0=384 1=3 2=1 3=1 4=-233 5=0 6=3456 7=384 11=3 12=1 13=1 
+BatchNorm                block_7_depthwise_BN                    1 1 block_7_depthwise_blob block_7_depthwise_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_7_depthwise_relu_Clip             1 1 block_7_depthwise_BN_blob block_7_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_7_depthwise_relu                  1 1 block_7_depthwise_relu_Clip_blob block_7_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_7_project                         1 1 block_7_depthwise_relu_blob block_7_project_blob 0=64 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_7_project_BN                      1 1 block_7_project_blob block_7_project_BN_blob 0=64 1=1.000000e-03 
+BinaryOp                 block_7_add                             2 1 block_7_project_BN_blob block_6_project_BN_Split_blob_idx_1 block_7_add_blob 0=0 1=0 2=0.000000e+00 
+Split                    block_7_add_Split                       1 2 block_7_add_blob block_7_add_Split_blob_idx_0 block_7_add_Split_blob_idx_1 
+Convolution              block_8_expand                          1 1 block_7_add_Split_blob_idx_0 block_8_expand_blob 0=384 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_8_expand_BN                       1 1 block_8_expand_blob block_8_expand_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_8_expand_relu_Clip                1 1 block_8_expand_BN_blob block_8_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_8_expand_relu                     1 1 block_8_expand_relu_Clip_blob block_8_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_8_depthwise                       1 1 block_8_expand_relu_blob block_8_depthwise_blob 0=384 1=3 2=1 3=1 4=-233 5=0 6=3456 7=384 11=3 12=1 13=1 
+BatchNorm                block_8_depthwise_BN                    1 1 block_8_depthwise_blob block_8_depthwise_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_8_depthwise_relu_Clip             1 1 block_8_depthwise_BN_blob block_8_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_8_depthwise_relu                  1 1 block_8_depthwise_relu_Clip_blob block_8_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_8_project                         1 1 block_8_depthwise_relu_blob block_8_project_blob 0=64 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_8_project_BN                      1 1 block_8_project_blob block_8_project_BN_blob 0=64 1=1.000000e-03 
+BinaryOp                 block_8_add                             2 1 block_8_project_BN_blob block_7_add_Split_blob_idx_1 block_8_add_blob 0=0 1=0 2=0.000000e+00 
+Split                    block_8_add_Split                       1 2 block_8_add_blob block_8_add_Split_blob_idx_0 block_8_add_Split_blob_idx_1 
+Convolution              block_9_expand                          1 1 block_8_add_Split_blob_idx_0 block_9_expand_blob 0=384 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_9_expand_BN                       1 1 block_9_expand_blob block_9_expand_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_9_expand_relu_Clip                1 1 block_9_expand_BN_blob block_9_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_9_expand_relu                     1 1 block_9_expand_relu_Clip_blob block_9_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_9_depthwise                       1 1 block_9_expand_relu_blob block_9_depthwise_blob 0=384 1=3 2=1 3=1 4=-233 5=0 6=3456 7=384 11=3 12=1 13=1 
+BatchNorm                block_9_depthwise_BN                    1 1 block_9_depthwise_blob block_9_depthwise_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_9_depthwise_relu_Clip             1 1 block_9_depthwise_BN_blob block_9_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_9_depthwise_relu                  1 1 block_9_depthwise_relu_Clip_blob block_9_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_9_project                         1 1 block_9_depthwise_relu_blob block_9_project_blob 0=64 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_9_project_BN                      1 1 block_9_project_blob block_9_project_BN_blob 0=64 1=1.000000e-03 
+BinaryOp                 block_9_add                             2 1 block_9_project_BN_blob block_8_add_Split_blob_idx_1 block_9_add_blob 0=0 1=0 2=0.000000e+00 
+Convolution              block_10_expand                         1 1 block_9_add_blob block_10_expand_blob 0=384 1=1 2=1 3=1 4=-233 5=0 6=24576 9=0 11=1 12=1 13=1 
+BatchNorm                block_10_expand_BN                      1 1 block_10_expand_blob block_10_expand_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_10_expand_relu_Clip               1 1 block_10_expand_BN_blob block_10_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_10_expand_relu                    1 1 block_10_expand_relu_Clip_blob block_10_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_10_depthwise                      1 1 block_10_expand_relu_blob block_10_depthwise_blob 0=384 1=3 2=1 3=1 4=-233 5=0 6=3456 7=384 11=3 12=1 13=1 
+BatchNorm                block_10_depthwise_BN                   1 1 block_10_depthwise_blob block_10_depthwise_BN_blob 0=384 1=1.000000e-03 
+Clip                     block_10_depthwise_relu_Clip            1 1 block_10_depthwise_BN_blob block_10_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_10_depthwise_relu                 1 1 block_10_depthwise_relu_Clip_blob block_10_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_10_project                        1 1 block_10_depthwise_relu_blob block_10_project_blob 0=96 1=1 2=1 3=1 4=-233 5=0 6=36864 9=0 11=1 12=1 13=1 
+BatchNorm                block_10_project_BN                     1 1 block_10_project_blob block_10_project_BN_blob 0=96 1=1.000000e-03 
+Split                    block_10_project_BN_Split               1 2 block_10_project_BN_blob block_10_project_BN_Split_blob_idx_0 block_10_project_BN_Split_blob_idx_1 
+Convolution              block_11_expand                         1 1 block_10_project_BN_Split_blob_idx_0 block_11_expand_blob 0=576 1=1 2=1 3=1 4=-233 5=0 6=55296 9=0 11=1 12=1 13=1 
+BatchNorm                block_11_expand_BN                      1 1 block_11_expand_blob block_11_expand_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_11_expand_relu_Clip               1 1 block_11_expand_BN_blob block_11_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_11_expand_relu                    1 1 block_11_expand_relu_Clip_blob block_11_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_11_depthwise                      1 1 block_11_expand_relu_blob block_11_depthwise_blob 0=576 1=3 2=1 3=1 4=-233 5=0 6=5184 7=576 11=3 12=1 13=1 
+BatchNorm                block_11_depthwise_BN                   1 1 block_11_depthwise_blob block_11_depthwise_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_11_depthwise_relu_Clip            1 1 block_11_depthwise_BN_blob block_11_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_11_depthwise_relu                 1 1 block_11_depthwise_relu_Clip_blob block_11_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_11_project                        1 1 block_11_depthwise_relu_blob block_11_project_blob 0=96 1=1 2=1 3=1 4=-233 5=0 6=55296 9=0 11=1 12=1 13=1 
+BatchNorm                block_11_project_BN                     1 1 block_11_project_blob block_11_project_BN_blob 0=96 1=1.000000e-03 
+BinaryOp                 block_11_add                            2 1 block_11_project_BN_blob block_10_project_BN_Split_blob_idx_1 block_11_add_blob 0=0 1=0 2=0.000000e+00 
+Split                    block_11_add_Split                      1 2 block_11_add_blob block_11_add_Split_blob_idx_0 block_11_add_Split_blob_idx_1 
+Convolution              block_12_expand                         1 1 block_11_add_Split_blob_idx_0 block_12_expand_blob 0=576 1=1 2=1 3=1 4=-233 5=0 6=55296 9=0 11=1 12=1 13=1 
+BatchNorm                block_12_expand_BN                      1 1 block_12_expand_blob block_12_expand_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_12_expand_relu_Clip               1 1 block_12_expand_BN_blob block_12_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_12_expand_relu                    1 1 block_12_expand_relu_Clip_blob block_12_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_12_depthwise                      1 1 block_12_expand_relu_blob block_12_depthwise_blob 0=576 1=3 2=1 3=1 4=-233 5=0 6=5184 7=576 11=3 12=1 13=1 
+BatchNorm                block_12_depthwise_BN                   1 1 block_12_depthwise_blob block_12_depthwise_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_12_depthwise_relu_Clip            1 1 block_12_depthwise_BN_blob block_12_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_12_depthwise_relu                 1 1 block_12_depthwise_relu_Clip_blob block_12_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_12_project                        1 1 block_12_depthwise_relu_blob block_12_project_blob 0=96 1=1 2=1 3=1 4=-233 5=0 6=55296 9=0 11=1 12=1 13=1 
+BatchNorm                block_12_project_BN                     1 1 block_12_project_blob block_12_project_BN_blob 0=96 1=1.000000e-03 
+BinaryOp                 block_12_add                            2 1 block_12_project_BN_blob block_11_add_Split_blob_idx_1 block_12_add_blob 0=0 1=0 2=0.000000e+00 
+Convolution              block_13_expand                         1 1 block_12_add_blob block_13_expand_blob 0=576 1=1 2=1 3=1 4=-233 5=0 6=55296 9=0 11=1 12=1 13=1 
+BatchNorm                block_13_expand_BN                      1 1 block_13_expand_blob block_13_expand_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_13_expand_relu_Clip               1 1 block_13_expand_BN_blob block_13_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_13_expand_relu                    1 1 block_13_expand_relu_Clip_blob block_13_expand_relu_blob 0=0.000000e+00 1=0 
+Padding                  block_13_pad                            1 1 block_13_expand_relu_blob block_13_pad_blob 0=0 1=1 2=0 3=1 
+ConvolutionDepthWise     block_13_depthwise                      1 1 block_13_pad_blob block_13_depthwise_blob 0=576 1=3 2=1 3=2 4=0 5=0 6=5184 7=576 11=3 12=1 13=2 
+BatchNorm                block_13_depthwise_BN                   1 1 block_13_depthwise_blob block_13_depthwise_BN_blob 0=576 1=1.000000e-03 
+Clip                     block_13_depthwise_relu_Clip            1 1 block_13_depthwise_BN_blob block_13_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_13_depthwise_relu                 1 1 block_13_depthwise_relu_Clip_blob block_13_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_13_project                        1 1 block_13_depthwise_relu_blob block_13_project_blob 0=160 1=1 2=1 3=1 4=-233 5=0 6=92160 9=0 11=1 12=1 13=1 
+BatchNorm                block_13_project_BN                     1 1 block_13_project_blob block_13_project_BN_blob 0=160 1=1.000000e-03 
+Split                    block_13_project_BN_Split               1 2 block_13_project_BN_blob block_13_project_BN_Split_blob_idx_0 block_13_project_BN_Split_blob_idx_1 
+Convolution              block_14_expand                         1 1 block_13_project_BN_Split_blob_idx_0 block_14_expand_blob 0=960 1=1 2=1 3=1 4=-233 5=0 6=153600 9=0 11=1 12=1 13=1 
+BatchNorm                block_14_expand_BN                      1 1 block_14_expand_blob block_14_expand_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_14_expand_relu_Clip               1 1 block_14_expand_BN_blob block_14_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_14_expand_relu                    1 1 block_14_expand_relu_Clip_blob block_14_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_14_depthwise                      1 1 block_14_expand_relu_blob block_14_depthwise_blob 0=960 1=3 2=1 3=1 4=-233 5=0 6=8640 7=960 11=3 12=1 13=1 
+BatchNorm                block_14_depthwise_BN                   1 1 block_14_depthwise_blob block_14_depthwise_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_14_depthwise_relu_Clip            1 1 block_14_depthwise_BN_blob block_14_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_14_depthwise_relu                 1 1 block_14_depthwise_relu_Clip_blob block_14_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_14_project                        1 1 block_14_depthwise_relu_blob block_14_project_blob 0=160 1=1 2=1 3=1 4=-233 5=0 6=153600 9=0 11=1 12=1 13=1 
+BatchNorm                block_14_project_BN                     1 1 block_14_project_blob block_14_project_BN_blob 0=160 1=1.000000e-03 
+BinaryOp                 block_14_add                            2 1 block_14_project_BN_blob block_13_project_BN_Split_blob_idx_1 block_14_add_blob 0=0 1=0 2=0.000000e+00 
+Split                    block_14_add_Split                      1 2 block_14_add_blob block_14_add_Split_blob_idx_0 block_14_add_Split_blob_idx_1 
+Convolution              block_15_expand                         1 1 block_14_add_Split_blob_idx_0 block_15_expand_blob 0=960 1=1 2=1 3=1 4=-233 5=0 6=153600 9=0 11=1 12=1 13=1 
+BatchNorm                block_15_expand_BN                      1 1 block_15_expand_blob block_15_expand_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_15_expand_relu_Clip               1 1 block_15_expand_BN_blob block_15_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_15_expand_relu                    1 1 block_15_expand_relu_Clip_blob block_15_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_15_depthwise                      1 1 block_15_expand_relu_blob block_15_depthwise_blob 0=960 1=3 2=1 3=1 4=-233 5=0 6=8640 7=960 11=3 12=1 13=1 
+BatchNorm                block_15_depthwise_BN                   1 1 block_15_depthwise_blob block_15_depthwise_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_15_depthwise_relu_Clip            1 1 block_15_depthwise_BN_blob block_15_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_15_depthwise_relu                 1 1 block_15_depthwise_relu_Clip_blob block_15_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_15_project                        1 1 block_15_depthwise_relu_blob block_15_project_blob 0=160 1=1 2=1 3=1 4=-233 5=0 6=153600 9=0 11=1 12=1 13=1 
+BatchNorm                block_15_project_BN                     1 1 block_15_project_blob block_15_project_BN_blob 0=160 1=1.000000e-03 
+BinaryOp                 block_15_add                            2 1 block_15_project_BN_blob block_14_add_Split_blob_idx_1 block_15_add_blob 0=0 1=0 2=0.000000e+00 
+Convolution              block_16_expand                         1 1 block_15_add_blob block_16_expand_blob 0=960 1=1 2=1 3=1 4=-233 5=0 6=153600 9=0 11=1 12=1 13=1 
+BatchNorm                block_16_expand_BN                      1 1 block_16_expand_blob block_16_expand_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_16_expand_relu_Clip               1 1 block_16_expand_BN_blob block_16_expand_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_16_expand_relu                    1 1 block_16_expand_relu_Clip_blob block_16_expand_relu_blob 0=0.000000e+00 1=0 
+ConvolutionDepthWise     block_16_depthwise                      1 1 block_16_expand_relu_blob block_16_depthwise_blob 0=960 1=3 2=1 3=1 4=-233 5=0 6=8640 7=960 11=3 12=1 13=1 
+BatchNorm                block_16_depthwise_BN                   1 1 block_16_depthwise_blob block_16_depthwise_BN_blob 0=960 1=1.000000e-03 
+Clip                     block_16_depthwise_relu_Clip            1 1 block_16_depthwise_BN_blob block_16_depthwise_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     block_16_depthwise_relu                 1 1 block_16_depthwise_relu_Clip_blob block_16_depthwise_relu_blob 0=0.000000e+00 1=0 
+Convolution              block_16_project                        1 1 block_16_depthwise_relu_blob block_16_project_blob 0=320 1=1 2=1 3=1 4=-233 5=0 6=307200 9=0 11=1 12=1 13=1 
+BatchNorm                block_16_project_BN                     1 1 block_16_project_blob block_16_project_BN_blob 0=320 1=1.000000e-03 
+Convolution              Conv_1                                  1 1 block_16_project_BN_blob Conv_1_blob 0=1280 1=1 2=1 3=1 4=0 5=0 6=409600 9=0 11=1 12=1 13=1 
+BatchNorm                Conv_1_bn                               1 1 Conv_1_blob Conv_1_bn_blob 0=1280 1=1.000000e-03 
+Clip                     out_relu_Clip                           1 1 Conv_1_bn_blob out_relu_Clip_blob 0=-1.797693e+308 1=6.000000e+00 
+ReLU                     out_relu                                1 1 out_relu_Clip_blob out_relu_blob 0=0.000000e+00 1=0 
+

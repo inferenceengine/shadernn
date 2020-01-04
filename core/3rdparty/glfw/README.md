@@ -1,0 +1,1 @@
+GLFW 3.2 pre-built for Windows x64.

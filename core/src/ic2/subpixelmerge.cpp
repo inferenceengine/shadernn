@@ -1,0 +1,77 @@
+/* Copyright (C) 2020 - Present, OPPO Mobile Comm Corp., Ltd. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include "pch.h"
+#include "dp.h"
+#include <cstring>
+#include <algorithm>
+#include <fstream>
+#include <ios>
+
+using namespace snn;
+using namespace snn::dp;
+
+static constexpr const char* SUBPIXEL_MERGE_FS_ASSET_NAME = "shaders/shadertemplate_fs_subpixel.glsl";
+
+InferenceGraph::Transform SubpixelLayer::getOutputScaleDimAdjustment() const {
+    return {0, static_cast<float>(_desc.kernelSize), static_cast<float>(_desc.kernelSize), 0.0f, 0.0f};
+}
+
+ShaderLayer::GLSLShaders SubpixelLayer::createFS(const LayerGenOptions&) const {
+    if (_desc.numInputPlanes <= 1) {
+        SNN_LOGD("Input number is less and equal to 1: layer = %s", name.c_str());
+    }
+
+    GLSLShaders ret;
+    std::ostringstream preDefine;
+    std::ostringstream postDefine;
+
+    preDefine << "#version 320 es\n";
+    preDefine << "#define NUM_INPUT_PLANES " << _desc.numInputPlanes << std::endl;
+    preDefine << "#define NUM_OUTPUT_PLANES " << _desc.numOutputPlanes << std::endl;
+    preDefine << "#define NUM_KERNEL_SIZE " << _desc.kernelSize << std::endl;
+    if (_desc.numInputPlanes <= 4) {
+        preDefine << "#define INPUT_TEXTURE_2D\n";
+    }
+    if (_desc.kernelSize > 2) {
+        preDefine << "#define KERNEL_LARGER_THAN_2\n";
+    }
+
+    postDefine << ("s = tanh(s);\n");
+    postDefine << "o_pixel = s;\n";
+    postDefine << "}\n";
+
+    auto fsCode = loadShader(SUBPIXEL_MERGE_FS_ASSET_NAME);
+
+    if (_desc.preferHp) {
+        findAndReplace(fsCode, "_PLACEHOLDER_PRECISION_", "mediump");
+    } else {
+        findAndReplace(fsCode, "_PLACEHOLDER_PRECISION_", "highp");
+    }
+
+    std::unordered_map<std::string, gl::SimpleUniform::Value> uniforms;
+
+    // Get the list of passes.
+    std::vector<InferenceGraph::Pass>& passes = ret.passes;
+    passes.resize(1);
+
+    InferenceGraph::Pass& pass  = passes[0];
+    pass.source                 = preDefine.str() + fsCode + postDefine.str();
+    pass.inputs                 = {{"inputTextures", 0}}; // Input is currently hard coded in GLSL file.
+    pass.program                = InferenceGraph::Pass::FsProgram {(uint32_t) 0, DIV_4_ROUND_UP(_desc.numOutputPlanes)};
+    pass.uniforms["kernelSize"] = _desc.kernelSize;
+    // pass.uniforms.push_back("bias",_desc.bias);//FIXEME, Current subpixel merge shader is not utilizing bias, add this back if is needed
+
+    return ret;
+}
