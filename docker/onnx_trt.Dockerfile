@@ -1,4 +1,4 @@
-# Copyright (C) 2020 - Present, OPPO Mobile Comm Corp., Ltd. All rights reserved.
+# Copyright (C) 2020 - 2022 OPPO. All rights reserved.
 #
 # Copyright (c) 2021, NVIDIA CORPORATION. All rights reserved.
 #

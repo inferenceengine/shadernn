@@ -1,4 +1,4 @@
-Copyright (C) 2020 - Present, OPPO Mobile Comm Corp., Ltd. All rights reserved.
+Copyright (C) 2020 - 2022 OPPO. All rights reserved.
 
 Partial codes in core/src/ic2/yololayer.cpp referenced source codes of yolov3detectionoutput.cpp and yolov3detectionoutput.h from:
 https://github.com/Tencent/ncnn/blob/master/src/layer/yolov3detectionoutput.cpp
