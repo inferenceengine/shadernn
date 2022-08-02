@@ -44,7 +44,7 @@ struct DenseDesc : CommonLayerDesc {
 
 class DenseLayer : public ShaderLayer {
 public:
-    DenseLayer(DenseDesc&& d): ShaderLayer(d), _denseDesc(std::move(d)) {}
+    DenseLayer(DenseDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
     DenseLayer(const DenseLayer& d) = delete;
     DenseLayer& operator=(const DenseLayer& d) = delete;
     ~DenseLayer() {}
@@ -69,12 +69,12 @@ public:
 
         std::vector<std::vector<float>> weightMat;
 
-        pass.passes.transformMat.emplace(std::pair<std::vector<std::vector<float>>, std::vector<float>>(_denseDesc.weights, _denseDesc.biases));
+        pass.passes.transformMat.emplace(std::pair<std::vector<std::vector<float>>, std::vector<float>>(_desc.weights, _desc.biases));
         return pass;
     }
 
 private:
-    DenseDesc _denseDesc;
+    DenseDesc _desc;
     snn::InferenceGraph::LayerExecution executeBackend = snn::InferenceGraph::LayerExecution::CPU;
 };
 

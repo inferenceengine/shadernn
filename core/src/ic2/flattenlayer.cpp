@@ -23,7 +23,7 @@ using namespace std;
 using namespace snn;
 using namespace snn::dp;
 
-static constexpr const char* FLATTEN_CS_ASSET_NAME = "shaders/shadertemplate_cs_activation.glsl";
+static constexpr const char* FLATTEN_CS_ASSET_NAME = "shaders/shadertemplate_cs_flattenlayer.glsl";
 
 snn::dp::GenericModelLayer::GLSLShaders snn::dp::FlattenLayer::createGLSLShader(const LayerGenOptions& options) {
     (void) options;
@@ -39,16 +39,28 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::FlattenLayer::createGLSLShader(
 
     InferenceGraph::Pass& pass = passes[0];
 
-    std::string sourceCode = "#version 320 es \n"
-                             "#define PRECISION mediump\n"
-                             "precision PRECISION float;\n"
-                             "layout(rgba32f, binding=0) writeonly uniform PRECISION image2DArray uOutImage;\n"
-                             "layout(rgba32f, binding=1) readonly uniform PRECISION image2DArray uInImage;\n"
+    std::string shaderHeader;
+    if (_desc.preferHp) {
+        shaderHeader = "#version 320 es \n"
+                       "#define PRECISION mediump\n"
+                       "precision PRECISION float;\n"
+                       "layout(std430) buffer;\n"
+                       "#define OUTPUT_FORMAT rgba16f\n";
+    } else {
+        shaderHeader = "#version 320 es \n"
+                       "#define PRECISION highp\n"
+                       "precision PRECISION float;\n"
+                       "layout(std430) buffer;\n"
+                       "#define OUTPUT_FORMAT rgba32f\n";
+    }
+    // SNN_LOGI("%s:%d\nShader Header: %s\n", __FUNCTION__, __LINE__, shaderHeader.c_str());
+    std::string sourceCode = "layout(OUTPUT_FORMAT, binding=0) writeonly uniform PRECISION image2DArray uOutImage;\n"
+                             "layout(OUTPUT_FORMAT, binding=1) readonly uniform PRECISION image2DArray uInImage;\n"
                              "layout(location = 2) uniform int uWidth;\n"
                              "layout(location = 3) uniform int uHeight;\n"
-                             "layout(binding=5) writeonly buffer destBuffer{\n"
-                             "    float data[];\n"
-                             "} uOutBuffer;\n"
+                            //  "layout(binding=5) writeonly buffer destBuffer{\n"
+                            //  "    float data[];\n"
+                            //  "} uOutBuffer;\n"
                              "layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;\n"
                              "\n"
                              "void main()\n"
@@ -78,7 +90,7 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::FlattenLayer::createGLSLShader(
 
     pass.uniforms = {{"uWidth", 1}, {"uHeight", 1}};
     pass.inputs   = {{"uInImage", 0}};
-    pass.source   = sourceCode;
+    pass.source   = shaderHeader + sourceCode;
     pass.program  = InferenceGraph::Pass::CsProgram {
         "uOutImage",
         // div-by-N is determined by work group size defined CS program.
@@ -95,7 +107,7 @@ void snn::dp::FlattenLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture
     std::shared_ptr<snn::ManagedRawImage> outputTexPtr = std::make_shared<snn::ManagedRawImage>(inputTex[0].texture(0)->getBaseLevelPixels());
     std::vector<std::shared_ptr<snn::ManagedRawImage>> inputMat {outputTexPtr};
 
-    auto cpuL         = snn::dp::CPUCommonUtil<float> {_flattenDesc.activation, _flattenDesc.leakyReluAlpha, false};
+    auto cpuL         = snn::dp::CPUCommonUtil<float> {_desc.activation, _desc.leakyReluAlpha, false};
     auto transformMat = std::pair<std::vector<std::vector<float>>, std::vector<float>>(std::vector<std::vector<float>>(), std::vector<float>());
 
     if (!cpuL.gpuTexMat.has_value()) {

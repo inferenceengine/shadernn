@@ -32,32 +32,43 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
 
     GLSLShaders ret;
 
-    int inputWidth       = (int) _denseDesc.weights.size();
-    uint32_t outputWidth = (uint32_t) _denseDesc.biases.size();
+    int inputWidth       = (int) _desc.weights.size();
+    uint32_t outputWidth = (uint32_t) _desc.biases.size();
 
     std::vector<InferenceGraph::Pass>& passes = ret.passes;
     passes.resize(1);
 
     InferenceGraph::Pass& pass = passes[0];
 
-    std::string sourceCode = "#version 320 es \n"
-                            "#define PRECISION mediump\n"
-                            "precision PRECISION float;\n"
-                            "layout(rgba32f, binding=0) writeonly uniform PRECISION image2DArray uOutImage;\n"
-                            "layout(rgba32f, binding=1) readonly uniform PRECISION image2DArray uInImage;\n"
-                            "layout(std140) uniform;\n"
-                            "layout(binding=2) readonly uniform weightBuffer{\n"
+    std::string shaderHeader;
+    if (_desc.preferHp) {
+        shaderHeader = "#version 320 es \n"
+                       "#define PRECISION mediump\n"
+                       "precision PRECISION float;\n"
+                       "layout(std430) buffer;\n"
+                       "#define OUTPUT_FORMAT rgba16f\n";
+    } else {
+        shaderHeader = "#version 320 es \n"
+                       "#define PRECISION highp\n"
+                       "precision PRECISION float;\n"
+                       "layout(std430) buffer;\n"
+                       "#define OUTPUT_FORMAT rgba32f\n";
+    }
+    // SNN_LOGI("%s:%d\nShader Header: %s\n", __FUNCTION__, __LINE__, shaderHeader.c_str());
+    std::string sourceCode = "layout(OUTPUT_FORMAT, binding=0) writeonly uniform PRECISION image2DArray uOutImage;\n"
+                            "layout(OUTPUT_FORMAT, binding=1) readonly uniform PRECISION image2DArray uInImage;\n"
+                            "layout(binding=2) readonly buffer weightBuffer{\n"
                             "    float data[];\n"
                             "} uWightBuffer;\n"
-                            "layout(binding=3) readonly uniform biasBuffer{\n"
+                            "layout(binding=3) readonly buffer biasBuffer{\n"
                             "    float data[];\n"
                             "} uBiasBuffer;\n"
                             "layout(location = 4) uniform int uWidth;\n"
                             "layout(location = 5) uniform int uHeight;\n"
                             "layout(location = 6) uniform int activation;\n"
-                            "layout(binding=7) writeonly buffer destBuffer{\n"
-                            "    float data[];\n"
-                            "} uOutBuffer;\n"
+                            // "layout(binding=7) writeonly buffer destBuffer{\n"
+                            // "    float data[];\n"
+                            // "} uOutBuffer;\n"
                             "layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;\n"
                             "float relu(float i);\n"
                             "float sigmoid(float i);\n"
@@ -127,7 +138,7 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
                                             //{"uHeight", inputHeight}, // 1
                     {"activation", 0}};
     pass.inputs   = {{"uInImage", 0}};
-    pass.source   = sourceCode;
+    pass.source   = shaderHeader + sourceCode;
     pass.program  = InferenceGraph::Pass::CsProgram {
         "uOutImage",
         // div-by-N is determined by work group size defined CS program.
@@ -135,8 +146,8 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
     };
 
     // pass.transformMat.emplace(std::pair<std::vector<std::vector<float>>, std::vector<float>>(
-    //     _denseDesc.weights,
-    //     _denseDesc.biases
+    //     _desc.weights,
+    //     _desc.biases
     // ));
 
 #if USE_BUFFER_OBJECT
@@ -145,25 +156,25 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
     pass._boWeights->allocate(inputWidth * outputWidth * 4, pass._vecWeights.data());
     float* destWeight = (float*) pass._boWeights->map(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 #else
-    SNN_LOGD("Test:%s:%d input: %d-%zu, output: %d-%zu\n", __FUNCTION__, __LINE__, inputWidth, _denseDesc.weights[0].size(), outputWidth,
-             _denseDesc.weights.size());
+    SNN_LOGD("Test:%s:%d input: %d-%zu, output: %d-%zu\n", __FUNCTION__, __LINE__, inputWidth, _desc.weights[0].size(), outputWidth,
+             _desc.weights.size());
     pass._ssboWeights.reset(new gl::GLSSBOBuffer(inputWidth * outputWidth * 4));
     //_ssboWeights = new GLSSBOBuffer(options.desiredInput.width * options.desiredOutputHeight * 4);
     float* destWeight = (float*) pass._ssboWeights->map(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 #endif
 
-    unsigned int width = _denseDesc.weights[0].size();
+    unsigned int width = _desc.weights[0].size();
     // for (size_t j = 0; j < width; j++) {
-    //     for (size_t i = 0; i < _denseDesc.weights.size(); i++) {
-    //         *(destWeight + j * inputWidth + i) = _denseDesc.weights[i][j]; //_denseDesc.weights is 512 x 10, we need 10 x 512 here.
-    //         SNN_LOGD("%zu:%zu: %zu, %f\n",i, j, j * inputWidth + i, _denseDesc.weights[i][j]);
+    //     for (size_t i = 0; i < _desc.weights.size(); i++) {
+    //         *(destWeight + j * inputWidth + i) = _desc.weights[i][j]; //_desc.weights is 512 x 10, we need 10 x 512 here.
+    //         SNN_LOGD("%zu:%zu: %zu, %f\n",i, j, j * inputWidth + i, _desc.weights[i][j]);
     //     }
     // }
     int kIndex = 0;
-    for (size_t i = 0; i < _denseDesc.weights.size(); i++) {
+    for (size_t i = 0; i < _desc.weights.size(); i++) {
         for (size_t j = 0; j < width; j++) {
-            // SNN_LOGD("%zu:%zu: %zu, %f\n",i, j, i * inputWidth + j, _denseDesc.weights[i][j]);
-            *(destWeight + kIndex) = _denseDesc.weights[i][j];
+            // SNN_LOGD("%zu:%zu: %zu, %f\n",i, j, i * inputWidth + j, _desc.weights[i][j]);
+            *(destWeight + kIndex) = _desc.weights[i][j];
             kIndex++;
         }
     }
@@ -175,15 +186,15 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
     float* destBias = (float*) pass._boBias->map(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 #else
     pass._ssboBias.reset(new gl::GLSSBOBuffer(outputWidth * 4, GL_SHADER_STORAGE_BUFFER, GL_DYNAMIC_DRAW));
-    SNN_LOGD("Test:%s:%d bias:%d - %zu\n", __FUNCTION__, __LINE__, outputWidth, _denseDesc.biases.size());
+    SNN_LOGD("Test:%s:%d bias:%d - %zu\n", __FUNCTION__, __LINE__, outputWidth, _desc.biases.size());
 
     //_ssboBias = new GLSSBOBuffer(options.desiredOutputHeight * 4);
     float* destBias = (float*) pass._ssboBias->map(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 #endif
 
-    for (size_t i = 0; i < _denseDesc.biases.size(); i++) {
-        *(destBias + i) = _denseDesc.biases[i];
-        // SNN_LOGD("%zu:%f\n",i, _denseDesc.biases[i]);
+    for (size_t i = 0; i < _desc.biases.size(); i++) {
+        *(destBias + i) = _desc.biases[i];
+        // SNN_LOGD("%zu:%f\n",i, _desc.biases[i]);
     }
 
 #if USE_BUFFER_OBJECT
@@ -203,9 +214,9 @@ snn::dp::GenericModelLayer::GLSLShaders snn::dp::DenseLayer::createGLSLShader(co
 void snn::dp::DenseLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture>& inputTex, FixedSizeArray<snn::ImageTexture>& outputTex) {
     auto inputMat = inputTex[0].outputMat;
 
-    auto cpuL = snn::dp::CPUCommonUtil<float> {_denseDesc.activation, _denseDesc.leakyReluAlpha, true};
+    auto cpuL = snn::dp::CPUCommonUtil<float> {_desc.activation, _desc.leakyReluAlpha, true};
 
-    auto transformMats = std::pair<std::vector<std::vector<float>>, std::vector<float>>(_denseDesc.weights, _denseDesc.biases);
+    auto transformMats = std::pair<std::vector<std::vector<float>>, std::vector<float>>(_desc.weights, _desc.biases);
     if (!cpuL.inputMat.has_value()) {
         cpuL.inputMat.emplace(inputMat);
     }
@@ -217,7 +228,7 @@ void snn::dp::DenseLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture>&
 InferenceGraph::Transform DenseLayer::getOutputScaleDimAdjustment() const {
     InferenceGraph::Transform ret;
     ret.isFixed     = 1;
-    ret.fixedWidth  = (uint32_t) _denseDesc.biases.size();
+    ret.fixedWidth  = (uint32_t) _desc.biases.size();
     ret.fixedHeight = 1;
     ret.fixedDepth  = 1;
     ret.fixedBatch  = 1;
@@ -225,7 +236,7 @@ InferenceGraph::Transform DenseLayer::getOutputScaleDimAdjustment() const {
 }
 
 void snn::dp::DenseLayer::getOutputDims(uint32_t& width, uint32_t& height, uint32_t& depth) const {
-    width  = (uint32_t) _denseDesc.biases.size();
+    width  = (uint32_t) _desc.biases.size();
     height = 1;
     depth  = 1;
 }

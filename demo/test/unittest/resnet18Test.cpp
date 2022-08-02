@@ -250,32 +250,44 @@ int main(int argc, char** argv) {
     }
     printf("-----------------------------Final Average_Layer_1 output res: %d\n", ret);
 
-    // ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(), formatString("%s/images/%s", ASSETS_DIR,
-    // TEST_IMAGE).c_str(), "flatten_blob", 32); snnMat = getSNNLayerText(formatString("%s/Resnet18/%s layer [31] Flatten cpu layer.txt",
-    // DUMP_DIR,SNN_MODEL_NAME).c_str()); ret = CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD); if (ret) {
+    // ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(), formatString("%s/assets/images/%s",
+    //      ASSETS_DIR, TEST_IMAGE).c_str(), "flatten_blob", 32);
+    // snnMat = getSNNLayer(formatString("%s/Resnet18/%s layer [31] Flatten pass[0].dump", DUMP_DIR,SNN_MODEL_NAME).c_str(), false, 1);
+    // ret = CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD);
+    // if (ret) {
     //     pretty_print_ncnn(ncnnMat);
     //     pretty_print_ncnn(snnMat);
     // }
     // printf("-----------------------------Flatten_Layer_1 output res: %d\n", ret);
 
-    ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(),
-                           formatString("%s/assets/images/%s", ASSETS_DIR, TEST_IMAGE).c_str(), "dense_Softmax_blob", 32);
-    snnMat  = getSNNLayerText(formatString("%s/Resnet18/%s layer [32] Dense cpu layer.txt", DUMP_DIR, SNN_MODEL_NAME).c_str());
-    ret     = CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD);
-    if (1) {
-        pretty_print_ncnn(ncnnMat);
-        pretty_print_ncnn(snnMat);
+    try {
+        ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(),
+                            formatString("%s/assets/images/%s", ASSETS_DIR, TEST_IMAGE).c_str(), "dense_Softmax_blob", 32);
+        snnMat  = getSNNLayerText(formatString("%s/Resnet18/%s layer [32] Dense cpu layer.txt", DUMP_DIR, SNN_MODEL_NAME).c_str());
+        ret     = CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD);
+        if (1) {
+            pretty_print_ncnn(ncnnMat);
+            pretty_print_ncnn(snnMat);
+        }
+        printf("-----------------------------Output Blob output res: %d\n", ret);
+    } catch (std::exception& e) {
+        printf("-----------------------------Dense layer in compute shader\n");
     }
-    printf("-----------------------------Output Blob output res: %d\n", ret);
-
-    // ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(), formatString("%s/assets/images/%s",
-    // ASSETS_DIR, TEST_IMAGE).c_str(), "dense_blob", 32); auto snnMat4 = getSNNLayer(formatString("%s/Resnet18/%s layer [32] Dense pass[0].dump", DUMP_DIR,
-    // SNN_MODEL_NAME).c_str()); auto snnMat1 = snnMat4.channel_range(0,1); snnMat = snnMat1.reshape(snnMat1.w * snnMat1.h * snnMat1.c); ret =
-    // CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD); if (1) {
-    //     pretty_print_ncnn(ncnnMat);
-    //     pretty_print_ncnn(snnMat);
-    // }
-    // printf("-----------------------------Output Blob output res: %d\n", ret);
+    try {
+        ncnnMat = getNCNNLayer(formatString("%s/../../modelzoo/Resnet18/%s", ASSETS_DIR, NCNN_MODEL_NAME).c_str(), formatString("%s/assets/images/%s",
+            ASSETS_DIR, TEST_IMAGE).c_str(), "dense_blob", 32);
+        auto snnMat4 = getSNNLayer(formatString("%s/Resnet18/%s layer [32] Dense pass[0].dump", DUMP_DIR, SNN_MODEL_NAME).c_str());
+        auto snnMat1 = snnMat4.channel_range(0, 1);
+        snnMat = snnMat1.reshape(snnMat1.w * snnMat1.h * snnMat1.c);
+        ret = CompareMat(ncnnMat, snnMat, COMPARE_THRESHOLD);
+        if (1) {
+            pretty_print_ncnn(ncnnMat);
+            pretty_print_ncnn(snnMat);
+        }
+        printf("-----------------------------Output Blob output res: %d\n", ret);
+    } catch (std::exception& e) {
+        printf("-----------------------------Dense layer in CPU code\n");
+    }
 
     return 0;
 }

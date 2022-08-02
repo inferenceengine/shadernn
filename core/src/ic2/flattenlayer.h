@@ -31,13 +31,18 @@
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
-struct FlattenDesc : DenseDesc {
-    void parse(ModelParser& parser, int layerId) { parser.getFlattenLayer(layerId, (int&) numInputPlanes, (int&) numOutputPlanes, (std::string&) activation); }
+struct FlattenDesc : CommonLayerDesc {
+    std::string activation;
+    float leakyReluAlpha;
+    void parse(ModelParser& parser, int layerId) {
+        CommonLayerDesc::parse(parser, layerId);
+        parser.getFlattenLayer(layerId, (int&) numInputPlanes, (int&) numOutputPlanes, (std::string&) activation);
+    }
 };
 
 class FlattenLayer : public ShaderLayer {
 public:
-    FlattenLayer(FlattenDesc&& d): ShaderLayer(d), _flattenDesc(std::move(d)) {}
+    FlattenLayer(FlattenDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
     FlattenLayer(const FlattenLayer& d) = delete;
     FlattenLayer& operator=(const FlattenLayer& d) = delete;
     ~FlattenLayer() {}
@@ -72,7 +77,7 @@ public:
     virtual bool isTransition() const override { return true; }
 
 private:
-    FlattenDesc _flattenDesc;
+    FlattenDesc _desc;
     snn::InferenceGraph::LayerExecution executeBackend = snn::InferenceGraph::LayerExecution::CPU;
 };
 }; // namespace dp
