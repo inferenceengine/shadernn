@@ -37,7 +37,8 @@ set(headers-3rdparty
     ${core-dir}/3rdparty/glm/include/
     ${core-dir}/3rdparty/libyuv/include/
     ${core-dir}/3rdparty/eigen-3.4.0/
-    ${core-dir}/3rdparty/misc/include/
+    ${core-dir}/3rdparty/picojson/include/
+    ${core-dir}/3rdparty/stb_image/include/
     ${core-dir}/3rdparty/opencv/android/include/
     ${core-dir}/3rdparty/readerwriterqueue/
 )

@@ -41,7 +41,7 @@ Install dependence at first build:
  
 ```
 % cd demo/
-% install-deps.sh android
+% ./install-deps.sh android
 ```
 
 Build:
@@ -81,7 +81,7 @@ Install dependence at first build:
  
 ```
 % cd demo/
-% install-deps.sh linux
+% ./install-deps.sh linux
 ``` 
 
 Build:

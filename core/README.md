@@ -1,5 +1,9 @@
-# SNN core library
+# ShaderNN core library
 
-Our inference engine and supporting code goes in this folder. They will eventually get integrated with the main OPPO code base and shipped. Please keep the quality bar high.
+This folder includes source code for ShaderNN core library. By default, it will build 64 bit debug version for linux or android based on the selected build target option.
 
-Note: the inc folder is reserved for public headers of SNN module. Put any internal headers to src folder.
+After built, it will generate snn-core-install folder including ShaderNN header files and core library:
+
+![snn-core-install](../docs/images/snn-core-install.png)
+
+Other apps can integrate these ShaderNNN header files and core library to do inference. 

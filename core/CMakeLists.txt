@@ -99,8 +99,8 @@ set(sources
 
 set(snn_3rdparty_sources
     3rdparty/glad/src/glad.c
-    3rdparty/misc/src/stb_image.cpp
-    3rdparty/misc/src/stb_image_write.cpp
+    3rdparty/stb_image/src/stb_image.cpp
+    3rdparty/stb_image/src/stb_image_write.cpp
 )
 
 set(snn_3rdparty_headers
@@ -108,7 +108,8 @@ set(snn_3rdparty_headers
     3rdparty/glm/include/
     3rdparty/libyuv/include/
     3rdparty/eigen-3.4.0/
-    3rdparty/misc/include/
+    3rdparty/picojson/include/
+    3rdparty/stb_image/include/
 )
 
 add_library(snn_core SHARED ${sources} ${public_headers} ${snn_3rdparty_sources})

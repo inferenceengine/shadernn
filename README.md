@@ -45,15 +45,10 @@
 - Apache License 2.0
 
 ## Acknowledgement:
-ShaderNN refers to the following projects:
-- [Tensorflow](https://github.com/tensorflow/tensorflow)
-- [PyTorch](https://github.com/pytorch/pytorch)
-- [ONNX](https://github.com/onnx/onnx)
+ShaderNN makes use of the following third party libraries:
 - [ncnn](https://github.com/Tencent/ncnn)
 - [MNN](https://github.com/alibaba/MNN)
 - [opencv](https://github.com/opencv/opencv)
-- [NETRON](https://github.com/lutzroeder/netron)
-- [stb](https://github.com/nothings/stb)
 - [libyuv](https://chromium.googlesource.com/libyuv/libyuv)
 - [libjpeg](https://github.com/libjpeg-turbo/libjpeg-turbo)
 - [cli11](https://github.com/CLIUtils/CLI11)
@@ -62,13 +57,13 @@ ShaderNN refers to the following projects:
 - [glad](https://github.com/Dav1dde/glad)
 - [glfw](https://github.com/glfw/glfw)
 - [glm](https://github.com/g-truc/glm)
-- catch
-- [json](https://github.com/nlohmann/json)
 - [picojson](https://github.com/kazuho/picojson)
 - [stb_image](https://github.com/nothings/stb)
 - [readerwriterqueue](https://github.com/cameron314/readerwriterqueue/)
 
-
-
-
+ShaderNN makes use of models trained and converted from Tensorflow, PyTorch and ONNX, and uses Netron visualizer:
+- [Tensorflow](https://github.com/tensorflow/tensorflow)
+- [PyTorch](https://github.com/pytorch/pytorch)
+- [ONNX](https://github.com/onnx/onnx)
+- [Netron](https://github.com/lutzroeder/netron)
 
