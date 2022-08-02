@@ -186,7 +186,7 @@ ManagedRawImage ManagedRawImage::loadFromAsset(std::string assetName) {
     return result;
 }
 
-inline float FP16::toFloat() const {
+float FP16::toFloat() const {
     // https://gist.github.com/rygorous/2156668
     static constexpr FP32 magic = {126 << 23};
     FP32 o;
