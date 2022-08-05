@@ -38,6 +38,11 @@
 ## Benchmark:
   - Benchmark models based in Model Zoo against TFLite framework. Please refer to [Benchmark.md](benchmark/Benchmark.md) for details.
 
+## Style Transfer Demo
+  - Style Transfer example running on Android demo app using ShaderNN framework is shown below. The [pretrained models](https://github.com/onnx/models/tree/main/vision/style_transfer/fast_neural_style/model) are inferenced to showcase styles like Candy, Mosaic, Rain Princess and Udnie.
+  
+    ![Alt-text](docs/images/styleTransfer.gif)
+
 ## Branching Policy:
 - For dev branches for your own use, please prefix it with "your_name/". For example, "bruce.lee/training_session_1"
 
