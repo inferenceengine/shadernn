@@ -20,6 +20,10 @@
   - OpenGL-based does not require reliance on other third-party technology libraries, making it easy to port, deploy and upgrade
   - Simple input/output interface, compatible with GPU processing
 
+## Typical Application Scenerios:
+  - ShaderNN is good at graphics and image processing pipelines, and here listed some typical scenerios, such as ray tracing denoise, deep learning super sampling, high dynamic range, super resolution and style transfer etc.\
+  ![ShaderNN Usecases](docs/images/usecases.jpg)
+
 ## Architecture:
 ![ShaderNN architecture](docs/images/architecture.png)
 
@@ -38,7 +42,7 @@
 ## Benchmark:
   - Benchmark models based in Model Zoo against TFLite framework. Please refer to [Benchmark.md](benchmark/Benchmark.md) for details.
 
-## Style Transfer Demo
+## Style Transfer Demo:
   - Style Transfer example running on Android demo app using ShaderNN framework is shown below. The [pretrained models](https://github.com/onnx/models/tree/main/vision/style_transfer/fast_neural_style/model) are inferenced to showcase styles like Candy, Mosaic, Rain Princess and Udnie.
   
     ![Alt-text](docs/images/styleTransfer.gif)
