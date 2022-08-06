@@ -5,20 +5,23 @@
  ![ShaderNN workflow](docs/images/workflow.png)
 
 ## Why use ShaderNN?
+- Targeted for real time graphic and image post-processing
+  - Directly operate the texture data of graphics graphics and image applications, save big I/O time which is critical for real time application on mobile platforms;
+  - Native OpenGL ES based, easily integrate with the graphics rendering pipeline to maximize the use of computing resources, suits for rendering, image/video and game AI applications;
 - High Performance
-  - Makes full use of the parallel computing advantages of GPU Shader to implement core operators, directly operate the texture data of graphics graphics and image applications, save I/O time, and integrate with the graphics rendering pipeline to maximize the use of computing resources;
+  - Makes full use of the parallel computing advantages of GPU Shader to implement core operators;
   - Pre-building the static computation graph for inference first and then running it, compared to the dynamic graph, the graph structure can be optimized before running, such as constant folding, operator fusion, etc., which can obtain faster forward operation speed;
   - When the model is running, the running backend will be selected statically or dynamically according to the platform resources, and the running parameters of the kernel will be dynamically adjusted to achieve the best energy consumption utilization at runtime
   - Optimizes for Convolutional Neural Networks to improve real-time performance;
   - Supports heterogeneous device hybrid computing, and currently supports CPU and GPU;
   - Provides a demo app pipeline optimized for throughput over latency, minimized data transfer and optimized for video processing
+- Lightweight & Portability & Extensibility
+  - OpenGL-based does not require reliance on other third-party technology libraries and optimized for mobile platforms,  making it easy to port, deploy and upgrade;
+  - Simple input/output interface, compatible with GPU processing;
 - Versatility
-  - Supports popular framework formats such as TensorFlow/PyTorch/ONNX
+  - Supports popular framework formats such as TensorFlow/PyTorch/ONNX;
   - Supports popular Convolutional Neural Networks (CNN), such image classification, object detection, image segmentation, image enhancement;
   - Supports user-defined operators, convenient to implement new operators and models;
-- Portability & extensibility
-  - OpenGL-based does not require reliance on other third-party technology libraries, making it easy to port, deploy and upgrade
-  - Simple input/output interface, compatible with GPU processing
 
 ## Typical Application Scenerios:
   - ShaderNN is good at graphics and image processing pipelines, and here listed some typical scenerios, such as ray tracing denoise, deep learning super sampling, high dynamic range, super resolution and style transfer etc.\
