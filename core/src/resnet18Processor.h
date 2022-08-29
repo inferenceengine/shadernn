@@ -47,7 +47,7 @@ private:
     const std::size_t expectedWidth  = 32;
 
     ResNet18Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::CPU, format, 1}}), modelFileName_(modelFilename), compute_(compute), dumpOutputs(dumpOutputs) {}
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute), dumpOutputs(dumpOutputs) {}
 
     gl::TextureObject* getFrameTexture(GLuint id) {
         auto& t = frameTextures_[id];
