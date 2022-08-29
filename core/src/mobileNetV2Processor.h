@@ -20,7 +20,7 @@
 #include <string>
 #include "ic2/core.h"
 
-static constexpr const char* MOBILENETV2_MODEL_NAME = "mobilenetv2.json";
+static constexpr const char* MOBILENETV2_MODEL_NAME = "mobilenetV2.json";
 
 namespace snn {
 class MobileNetV2Processor : public Processor {
@@ -47,7 +47,7 @@ private:
     const std::size_t expectedWidth  = 224;
 
     MobileNetV2Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::CPU, snn::ColorFormat::RGBA32F, 1}}), modelFileName_(modelFilename), compute_(compute),
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute),
           dumpOutputs(dumpOutputs) {}
 
     gl::TextureObject* getFrameTexture(GLuint id) {
