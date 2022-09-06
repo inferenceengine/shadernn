@@ -398,58 +398,6 @@ extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeLibrary_com
 
 // -----------------------------------------------------------------------------
 //
-#include "src/ic2/dp.h"
-#include "src/ic2/core.h"
-#include "snn/glUtils.h"
-#include "src/aiDenoiseProcessor.h"
-extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeTests_ic2test(JNIEnv* env, jclass, jobject java_am) {
-    // remember the pointer to the asset manager
-    g_assetManager = AAssetManager_fromJava(env, java_am);
-    SNN_CHK(g_assetManager);
-
-    auto modelFilename = "eff_predenoise_20200330-210658_e635_mixloss1.h5.json";
-    // auto modelFilename = "spatialDenoiser_0416.json";
-
-    std::vector<std::pair<std::string, std::vector<uint32_t>>> inputList;
-    inputList.push_back({"input", vector<uint32_t> {1080, 1920, 1, 1}});
-
-    auto ip = new snn::InferenceProcessor();
-
-    // create input texture
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    rc.makeCurrent();
-    ip->initialize({modelFilename, inputList, &rc, snn::MRTMode::SINGLE_PLANE, snn::WeightAccessMethod::CONSTANTS, true, false, false});
-
-    int loopcount = 1;
-    for (int i = 0; i < loopcount; i++) {
-        snn::FixedSizeArray<snn::ImageTexture> inputTexs;
-        inputTexs.allocate(1);
-        inputTexs[0].loadFromFile("/data/local/tmp/images/bright_night_view_street_1080x1920.jpg");
-        std::vector<float> means = {0.0, 0.0, 0.0, 0.0};
-        std::vector<float> norms = {1.0, 1.0, 1.0, 1.0};
-
-        inputTexs[0].convertFormat(snn::ColorFormat::RGBA32F, means, norms);
-
-        std::vector<float> resizeMeans {0.0, 0.0, 0.0, 0.0};
-        std::vector<float> resizeNorms {1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0, 1.0 / 255.0};
-
-        inputTexs[0].resize(1, 1, resizeMeans, resizeNorms);
-
-        ip->preProcess(inputTexs);
-        snn::FixedSizeArray<snn::ImageTexture> outputTexs;
-        outputTexs.allocate(1);
-#ifdef __ANDROID__
-        outputTexs[0].texture(0)->allocate2D(snn::ColorFormat::RGBA32F, 1080, 1920, 4, 1);
-#endif
-        ip->process(outputTexs);
-        rc.swapBuffers();
-    }
-
-    ip->finalize();
-
-    // test done successfully.
-    return 0;
-}
 
 extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeTests_resnet18test(JNIEnv* env, jclass, jobject java_am) {
     // remember the pointer to the asset manager
@@ -676,62 +624,6 @@ extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeTests_espcn
 //
 //    return 0;
 //}
-
-DECLARE_LAYER(YOLO);
-extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeTests_yolov3tinytest(JNIEnv* env, jclass, jobject java_am) {
-    // remember the pointer to the asset manager
-    g_assetManager = AAssetManager_fromJava(env, java_am);
-    SNN_CHK(g_assetManager);
-
-    // load input image
-    auto ip = new snn::InferenceProcessor();
-    ip->registerLayer("YOLO", YOLOCreator);
-
-    auto modelFileName = "yolov3-tiny.json";
-    std::vector<std::pair<std::string, std::vector<uint32_t>>> inputList;
-    inputList.push_back({"input", vector<uint32_t> {416, 416, 1, 1}});
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-
-    ip->initialize({modelFileName, inputList, &rc, snn::MRTMode::DOUBLE_PLANE, snn::WeightAccessMethod::TEXTURES, false, false, false});
-
-    int loopCount = 1;
-    for (int i = 0; i < loopCount; i++) {
-        snn::FixedSizeArray<snn::ImageTexture> inputTexs;
-
-        inputTexs.deallocate();
-        // inputTexs[0].loadFromFile("images/cifar_test.png");
-        // inputTexs[0].convertFormat(ColorFormat::RGBA32F);
-        // inputTexs[0].upload();
-        // inputTexs[0].printOutWH();
-
-        auto input = snn::ManagedRawImage::loadFromAsset("images/arduino.png");
-        printf("%s:%d\n", __FUNCTION__, __LINE__);
-        auto input32f = snn::toRgba32f(input, 0.0, 1.0);
-        gl::TextureObject scaleTex;
-        scaleTex.allocate2D(input32f.format(), input32f.width(), input32f.height(), 1, 4);
-        printf("%s:%d\n", __FUNCTION__, __LINE__);
-        scaleTex.setPixels(0, 0, 0, 416, 416, 0, input32f.data());
-        scaleTex.detach();
-        printf("%s:%d tex:%d, %d\n", __FUNCTION__, __LINE__, scaleTex.target(), scaleTex.id());
-        inputTexs.allocate(1);
-        inputTexs[0].texture(0)->attach(scaleTex.target(), scaleTex.id());
-
-        ip->preProcess(inputTexs);
-
-        snn::FixedSizeArray<snn::ImageTexture> outputTexs;
-        outputTexs.allocate(1);
-#ifdef __ANDROID__
-        outputTexs[0].texture(0)->allocate2DArray(snn::ColorFormat::RGBA32F, 1, 1, 256, 1024, 1);
-#endif
-        ip->process(outputTexs);
-        scaleTex.cleanup();
-    }
-
-    ip->finalize();
-
-    // test done successfully.
-    return 0;
-}
 
 extern "C" JNIEXPORT int JNICALL Java_com_oppo_seattle_snndemo_NativeTests_unettest(JNIEnv* env, jclass, jobject java_am) {
     // remember the pointer to the asset manager

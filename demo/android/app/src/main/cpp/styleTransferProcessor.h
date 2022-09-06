@@ -41,7 +41,7 @@ public:
         return std::unique_ptr<styleTransferProcessor>(new styleTransferProcessor(format, modelFileName.c_str(), compute, dumpOutputs));
     }
 
-    std::string getModelName() { return ""; }
+    std::string getModelName() override { return ""; }
 
 private:
     snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm _currentAlgorithm;

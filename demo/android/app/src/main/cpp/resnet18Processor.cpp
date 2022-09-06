@@ -131,7 +131,6 @@ void ResNet18Processor::submit(Workload& workload) {
     }
 
     auto& inputDesc = workload.inputs[0]->desc();
-    auto inputGpuData   = workload.inputs[0]->getGpuData();
 
     auto inputTexture  = ((GpuFrameImage*) workload.inputs[0])->getGpuData();
     auto outputTexture = ((GpuFrameImage*) workload.output)->getGpuData();

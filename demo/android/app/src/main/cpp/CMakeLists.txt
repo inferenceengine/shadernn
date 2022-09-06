@@ -21,7 +21,7 @@ set(core-dir ${root-dir}/core)
 set(demo-dir ${root-dir}/demo)
 set(snn-install-dir ${root-dir}/snn-core-install)
 
-set(CMAKE_CXX_FLAGS "-D__ANDROID__ -Wno-self-assign -Wnon-pod-varargs")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__ANDROID__ -Wall -Wno-error -w")
 set(OpenCV_DIR ${demo-dir}/test/OpenCV-android-sdk/sdk/native/jni)
 find_package(OpenCV REQUIRED)
 
@@ -30,6 +30,13 @@ add_library(native-lib SHARED
         ${demo-dir}/common/frameviz.cpp
         ${demo-dir}/common/processingloop.cpp
         nativeFrameProvider.cpp
+        mobileNetV2Processor.cpp
+        resnet18Processor.cpp
+        spatialDenoiser.cpp
+        styleTransferProcessor.cpp
+        yolov3Processor.cpp
+        engine.cpp
+        resizeProcessor.cpp
         )
 
 set(headers-3rdparty
@@ -43,7 +50,7 @@ set(headers-3rdparty
     ${core-dir}/3rdparty/readerwriterqueue/
 )
 
-target_include_directories(native-lib PRIVATE ${snn-install-dir}/includes/inc ${snn-install-dir}/includes/ ${headers-3rdparty})
+target_include_directories(native-lib PRIVATE ${snn-install-dir}/includes/inc ${snn-install-dir}/includes/src ${snn-install-dir}/includes/ ${headers-3rdparty})
 
 target_compile_options(native-lib PRIVATE -Werror -Wall -Wextra -Wno-unused-function)
 

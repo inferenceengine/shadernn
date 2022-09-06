@@ -13,17 +13,20 @@
  * limitations under the License.
  */
 #include "pch.h"
-#include "mobileNetV2Processor.h"
+#include "styleTransferProcessor.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/core/mat.hpp>
 #include "ic2/dp.h"
-#include "snn/utils.h"
+#include <snn/texture.h>
 
 using namespace std;
 using namespace snn;
 
 static gl::TextureObject resizedInputTex;
+static gl::TextureObject modelOutputTex;
 static bool texNotAllocated = true;
 
-static void preProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scaleY, int inWidth, int inHeight, int outWidth, int outHeight) {
+static void preprocessTexture(GLuint& inId, GLuint& outId, int scaleX, int scaleY, int inWidth, int inHeight, int outWidth, int outHeight) {
     std::string sourceCode = "#version 320 es \n"
                              "#define PRECISION mediump\n"
                              "precision PRECISION float;\n"
@@ -49,8 +52,9 @@ static void preProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scale
                              "        int y1 = int(floor(srcY));\n"
                              "        int y11 = clamp(y1, 0, inputImgSize.y - 1);\n"
                              "        \n"
-                             "        vec4 outValue = imageLoad(uInput, ivec2(x11, y11));\n"
+                             "        vec4 outValue = imageLoad(uInput, ivec2(x11, y11)) * vec4(255.f);\n"
                              "        \n"
+                             "        outValue = outValue;"
                              "        imageStore(uOutput, ivec2(pos.x, pos.y), outValue);\n"
                              "    }\n"
                              "    \n"
@@ -73,11 +77,11 @@ static void preProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scale
     glDispatchCompute(1920 / 8, 1080 / 8, 1);
 }
 
-static void postProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scaleY, int inWidth, int inHeight, int outWidth, int outHeight) {
+static void postProcessTexture(GLuint& inId, GLuint& outId, int inWidth, int inHeight, int outWidth, int outHeight, float scaleX, float scaleY) {
     std::string sourceCode = "#version 320 es \n"
                              "#define PRECISION mediump\n"
                              "precision PRECISION float;\n"
-                             "layout(rgba8, binding=0) readonly uniform PRECISION image2D uInput;\n"
+                             "layout(rgba32f, binding=0) readonly uniform PRECISION image2D uInput;\n"
                              "layout(rgba8, binding=1) writeonly uniform PRECISION image2D uOutput;\n"
                              "layout(location=2) uniform ivec4 inImgSize;\n"
                              "layout(location=3) uniform ivec4 outImgSize;\n"
@@ -99,9 +103,8 @@ static void postProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scal
                              "        int y1 = int(floor(srcY));\n"
                              "        int y11 = clamp(y1, 0, inputImgSize.y - 1);\n"
                              "        \n"
-                             "        vec4 outValue = imageLoad(uInput, ivec2(x11, y11));\n"
+                             "        vec4 outValue = imageLoad(uInput, ivec2(x11, y11)) / vec4(255.f);"
                              "        \n"
-                             "        outValue = outValue;"
                              "        imageStore(uOutput, ivec2(pos.x, pos.y), outValue);\n"
                              "    }\n"
                              "    \n"
@@ -111,26 +114,46 @@ static void postProcessTexture(GLuint& inId, GLuint& outId, int scaleX, int scal
     csProgram.loadCs(sourceCode.c_str());
     csProgram.use();
 
-    glBindImageTexture(0, inId, 0, true, 0, GL_READ_ONLY, GL_RGBA8);
+    glBindImageTexture(0, inId, 0, true, 0, GL_READ_ONLY, GL_RGBA32F);
     CHECK_GL_ERROR("glBindImageTexture");
-    glBindImageTexture(1, outId, 0, true, 0, GL_WRITE_ONLY, GL_RGBA8);
-    CHECK_GL_ERROR("glBindImageTexture");
+    GLCHK(glBindImageTexture(1, outId, 0, true, 0, GL_WRITE_ONLY, GL_RGBA8));
 
-    glUniform4i(2, inWidth, inHeight, 4, 1);
-    glUniform4i(3, outWidth, outHeight, 4, 1);
-    glUniform2f(4, scaleX, scaleY);
+    GLCHK(glUniform4i(2, inWidth, inHeight, 4, 1));
+    GLCHK(glUniform4i(3, outWidth, outHeight, 4, 1));
+    GLCHK(glUniform2f(4, scaleX, scaleY));
 
     glFinish();
-    glDispatchCompute(1920 / 8, 1080 / 8, 1);
+    GLCHK(glDispatchCompute(1920 / 8, 1080 / 8, 1));
 }
 
-void MobileNetV2Processor::submit(Workload& workload) {
+void styleTransferProcessor::submit(Workload& workload) {
     if (workload.inputCount == 0) {
         return;
     }
 
-    auto& inputDesc = workload.inputs[0]->desc();
-    auto inputGpuData   = workload.inputs[0]->getGpuData();
+    const auto& inputDesc = workload.inputs[0]->desc();
+
+    // we have to delay creating ic2 because we need to know the frame size.
+    if (!_ic2) {
+        dp::ShaderGenOptions options = {};
+        options.desiredInput.width   = 224;
+        options.desiredInput.height  = 224;
+        options.desiredInput.depth   = 1;
+        options.desiredInput.format  = snn::ColorFormat::RGBA32F;
+        options.desiredOutputFormat  = snn::ColorFormat::RGBA32F;
+        options.preferrHalfPrecision = true;
+        options.compute              = true;
+        options.mrtMode              = snn::MRTMode::SINGLE_PLANE;
+        options.weightMode           = snn::WeightAccessMethod::CONSTANTS;
+        auto dp                      = snn::dp::loadFromJsonModel(_modelFileName, options.mrtMode, options.weightMode, true);
+        MixedInferenceCore::CreationParameters cp;
+        (InferenceGraph &&) cp = snn::dp::generateInferenceGraph(dp[0], options);
+        cp.dumpOutputs         = false;
+        _ic2                   = MixedInferenceCore::create(cp);
+    }
+
+    SNN_ASSERT(inputDesc.device == Device::GPU);
+    SNN_ASSERT(outDesc.device == Device::GPU);
 
     auto inputTexture  = ((GpuFrameImage*) workload.inputs[0])->getGpuData();
     auto outputTexture = ((GpuFrameImage*) workload.output)->getGpuData();
@@ -139,51 +162,31 @@ void MobileNetV2Processor::submit(Workload& workload) {
     inputTex.attach(inputTexture.target, inputTexture.texture);
 
     if (texNotAllocated) {
-        resizedInputTex.allocate2D(snn::ColorFormat::RGBA32F, expectedWidth, expectedHeight);
+        resizedInputTex.allocate2D(snn::ColorFormat::RGBA32F, 224, 224);
+        modelOutputTex.allocate2D(snn::ColorFormat::RGBA32F, 224, 224);
         texNotAllocated = false;
     }
 
     GLuint inputTexId   = inputTex.id();
     GLuint resizedTexId = resizedInputTex.id();
+    preprocessTexture(inputTexId, resizedTexId, inputDesc.width / 224.f, inputDesc.height / 224.f, inputDesc.width, inputDesc.height, 224, 224);
 
-    preProcessTexture(inputTexId, resizedTexId, inputDesc.width / (float)expectedWidth, inputDesc.height / (float)expectedHeight, inputDesc.width, inputDesc.height, expectedWidth, expectedHeight);
+    GLuint modelOutId = modelOutputTex.id();
 
-    const auto& outputDesc = workload.output->desc();
-
-    if (!ic2_) {
-        dp::ShaderGenOptions options = {};
-        options.desiredInput.width   = expectedWidth;
-        options.desiredInput.height  = expectedHeight;
-        options.desiredInput.depth   = 1;
-        options.desiredInput.format  = inputDesc.format;
-        options.compute              = true;
-        options.desiredOutputFormat  = inputDesc.format;
-        options.preferrHalfPrecision = true;
-
-        options.mrtMode    = snn::MRTMode::SINGLE_PLANE;
-        options.weightMode = snn::WeightAccessMethod::TEXTURES;
-
-        auto dp = snn::dp::loadFromJsonModel(modelFileName_, options.mrtMode, options.weightMode, options.preferrHalfPrecision);
-
-        MixedInferenceCore::CreationParameters cp;
-        (InferenceGraph &&) cp = snn::dp::generateInferenceGraph(dp.at(0), options);
-
-        cp.dumpOutputs         = this->dumpOutputs;
-        ic2_                   = MixedInferenceCore::create(cp);
-    }
-
-    SNN_ASSERT(inputDesc.device == Device::GPU);
+    auto outVec = std::vector<std::vector<std::vector<float>>>();
+    auto inVec  = std::vector<std::vector<std::vector<float>>>();
 
     MixedInferenceCore::RunParameters rp = {};
     auto inputTextures                   = getFrameTexture(resizedTexId);
     rp.inputTextures                     = &inputTextures;
     rp.inputCount                        = 1;
-    rp.inputMatrix                       = workload.cpuInputs;
-    rp.output                            = std::vector<std::vector<std::vector<float>>>();
-    rp.modelOutput.modelType             = InferenceEngine::ModelType::CLASSIFICATION;
-    ic2_->run(rp);
+    rp.textureOut                        = getFrameTexture(modelOutId);
+    rp.inputMatrix                       = inVec;
+    rp.output                            = outVec;
 
-    postProcessTexture(inputTexId, outputTexture.texture, inputDesc.width/(float)outputDesc.width, inputDesc.height/(float)outputDesc.height, inputDesc.width, inputDesc.height, outputDesc.width, outputDesc.height);
+    _ic2->run(rp);
 
-    workload.modelOutput = rp.modelOutput;
+    float scaleX = 224 / (float) inputDesc.width;
+    float scaleY = 224 / (float) inputDesc.height;
+    postProcessTexture(modelOutId, outputTexture.texture, 224, 224, inputDesc.width, inputDesc.height, scaleX, scaleY);
 }

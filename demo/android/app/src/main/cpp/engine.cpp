@@ -15,14 +15,12 @@
 #include "pch.h"
 #include "snn/glUtils.h"
 #include "processor.h"
-#include "aiDenoiseProcessor.h"
+
 #include "resnet18Processor.h"
 #include "mobileNetV2Processor.h"
 #include "spatialDenoiser.h"
-#include "basicCNNProcessor.h"
 #include "yolov3Processor.h"
 #include "styleTransferProcessor.h"
-#include "aiDenoiseProcessor.h"
 #include "ic2/core.h"
 #include "ic2/dp.h"
 
@@ -287,23 +285,6 @@ private:
                 }
                 Processor::FrameVectorDesc d = {Device::CPU, inputFormat, nFrames, scale, min, max};
                 switch (_cp.algorithm.denoisers->denoiserAlgorithm) {
-                case AlgorithmConfig::Denoisers::DenoiserAlgorithm ::AIDENOISER:
-                    switch (_cp.algorithm.denoisers->denoiser) {
-                    case AlgorithmConfig::Denoisers::Denoiser ::COMPUTESHADER: {
-                        //  _cp.compute = true; // enable when merge cs.
-                        _cp.compute = true;
-                        addNewNode("cpu->gpu", std::make_unique<Upload2GpuProcessor>(d));
-                        addNewNode("denoiser", AIDenoiseProcessor2::createPreDenoiser(_nodes.back()->proc->desc().o.format, _cp.compute, dumpOutputs));
-                        break;
-                    }
-                    default: {
-                        addNewNode("cpu->gpu", std::make_unique<Upload2GpuProcessor>(d));
-                        addNewNode("denoiser", AIDenoiseProcessor2::createPreDenoiser(_nodes.back()->proc->desc().o.format, _cp.compute, dumpOutputs));
-                        break;
-                    }
-                    }
-
-                    break;
                 case AlgorithmConfig::Denoisers::DenoiserAlgorithm ::SPATIALDENOIRSER:
                     addNewNode("cpu->gpu", std::make_unique<Upload2GpuProcessor>(d));
                     switch (_cp.algorithm.denoisers->denoiser) {
@@ -398,31 +379,6 @@ private:
 
                     break;
                 }
-            }
-
-            if (_cp.algorithm.basicCNN) {
-                nFrames                      = 1;
-                currentDevice                = Device::GPU;
-                Processor::FrameVectorDesc d = {Device::CPU, inputFormat, nFrames};
-                SNN_LOGD("Current size of nodes is: %d", _nodes.size());
-                // if (_nodes.size() != 0) {
-                //     addNewNode("gpu->cpu", std::make_unique<DownloadFromGpuProcessor>(_nodes.back()->proc->desc().o, Device::CPU), 3);
-                // }
-                if (_cp.algorithm.basicCNN && !_cp.algorithm.basicCNN.value().scale) {
-                    Processor::FrameVectorDesc scaleD = {Device::CPU, ColorFormat::RGBA32F, nFrames};
-                    addNewNode("resize", std::make_unique<ResizeProcessor>(d, scaleD), 1);
-                    addNewNode("cpu->gpu", std::make_unique<Upload2GpuProcessor>(scaleD), 1);
-                } else {
-                    addNewNode("resize", std::make_unique<ResizeProcessor>(d), 1);
-                    addNewNode("cpu->gpu", std::make_unique<Upload2GpuProcessor>(d), 1);
-                }
-                bool dumpOutputs = false;
-                if (_cp.algorithm.basicCNN.has_value()) {
-                    dumpOutputs = _cp.algorithm.basicCNN.value().dumpOutputs;
-                }
-                addNewNode("basic_cnn", BasicCNNProcessor::createBasicCNNProcessor(_nodes.back()->proc->desc().o.format, _cp.compute, dumpOutputs), 1);
-
-                // std::cout << _nodes.size() << std::endl;
             }
         } else {
             nFrames                      = 1;

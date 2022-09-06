@@ -35,18 +35,9 @@ set(sources
     src/utils.cpp
     src/image.cpp
     src/glUtils.cpp
-    src/engine.cpp
     src/fence.cpp
     src/imageTexture.cpp
-    src/inferenceProcessor.cpp    
-    src/aiDenoiseProcessor.cpp
-    src/basicCNNProcessor.cpp
-    src/resnet18Processor.cpp
-    src/mobileNetV2Processor.cpp
-    src/spatialDenoiser.cpp
-    src/resizeProcessor.cpp
-    src/yolov3Processor.cpp
-    src/styleTransferProcessor.cpp
+    src/inferenceProcessor.cpp
     src/ic2/addlayer.cpp
     src/ic2/deconv2d.cpp
     src/ic2/conv2d.cpp
