@@ -1197,7 +1197,7 @@ ShaderLayer::GLSLShaders SeparableConv2DLayer::createCS(const LayerGenOptions& o
     // pass._boWeights->unmap();
 
     pass._vecBias.resize(_desc.numOutputPlanes);
-    pass._boBias.reset(new gl::BufferObject<GL_SHADER_STORAGE_BUFFER>());
+    pass._boBias.reset(new gl::BufferObject<GL_SHADER_STORAGE_BUFFER, MIN_SSBO_BUFFER_LEN_ARM_MALI>());
     pass._boBias->allocate(_desc.numOutputPlanes, pass._vecBias.data());
     float* destBias = (float*) pass._boBias->map(GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 

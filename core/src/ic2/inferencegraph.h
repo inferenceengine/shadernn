@@ -31,6 +31,8 @@
 #include <fstream>
 
 #include <Eigen/Dense>
+// ARM MALI DITING phone needs min buffer len to be 4.
+#define MIN_SSBO_BUFFER_LEN_ARM_MALI 4
 
 namespace snn {
 
@@ -104,7 +106,7 @@ struct InferenceGraph {
 
         std::shared_ptr<gl::BufferObject<GL_SHADER_STORAGE_BUFFER>> _boWeights;
         std::vector<float> _vecWeights;
-        std::shared_ptr<gl::BufferObject<GL_SHADER_STORAGE_BUFFER>> _boBias;
+        std::shared_ptr<gl::BufferObject<GL_SHADER_STORAGE_BUFFER, MIN_SSBO_BUFFER_LEN_ARM_MALI>> _boBias;
         std::vector<float> _vecBias;
         std::shared_ptr<gl::BufferObject<GL_SHADER_STORAGE_BUFFER>> _bnMean;
         std::vector<float> _vecMean;
