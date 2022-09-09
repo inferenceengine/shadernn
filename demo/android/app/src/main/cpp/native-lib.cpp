@@ -54,116 +54,60 @@ auto toNativeAlgorithmConfig(JNIEnv* env, jobject jalgo) {
     InferenceEngine::ModelType modelType = InferenceEngine::ModelType::OTHER;
     { // denoise
         jmethodID isDenoiseNONE            = env->GetMethodID(algoCfgClass, "isDenoiseNONE", "()Z");
-        jmethodID isDenoiseFRAGMENTSHADER  = env->GetMethodID(algoCfgClass, "isDenoiseFRAGMENTSHADER", "()Z");
-        jmethodID isDenoiseCOMPUTESHADER   = env->GetMethodID(algoCfgClass, "isDenoiseCOMPUTESHADER", "()Z");
-        jmethodID isDenoiseAIDENOISER      = env->GetMethodID(algoCfgClass, "isDenoiseAIDENOISER", "()Z");
         jmethodID isDenoiseSPATIALDENOISER = env->GetMethodID(algoCfgClass, "isDenoiseSPATIALDENOISER", "()Z");
 
         if (env->CallBooleanMethod(jalgo, isDenoiseNONE)) {
-        } else if (env->CallBooleanMethod(jalgo, isDenoiseAIDENOISER) && env->CallBooleanMethod(jalgo, isDenoiseFRAGMENTSHADER)) {
+        } else if (env->CallBooleanMethod(jalgo, isDenoiseSPATIALDENOISER)) {
             algo.denoisers = InferenceEngine::AlgorithmConfig::Denoisers {InferenceEngine::AlgorithmConfig::Denoisers::Denoiser::FRAGMENTSHADER,
-                                                                          InferenceEngine::AlgorithmConfig::Denoisers::DenoiserAlgorithm ::AIDENOISER};
-        } else if (env->CallBooleanMethod(jalgo, isDenoiseAIDENOISER) && env->CallBooleanMethod(jalgo, isDenoiseCOMPUTESHADER)) {
-            algo.denoisers = InferenceEngine::AlgorithmConfig::Denoisers {InferenceEngine::AlgorithmConfig::Denoisers::Denoiser::COMPUTESHADER,
-                                                                          InferenceEngine::AlgorithmConfig::Denoisers::DenoiserAlgorithm ::AIDENOISER};
-        } else if (env->CallBooleanMethod(jalgo, isDenoiseSPATIALDENOISER) && env->CallBooleanMethod(jalgo, isDenoiseFRAGMENTSHADER)) {
-            algo.denoisers = InferenceEngine::AlgorithmConfig::Denoisers {InferenceEngine::AlgorithmConfig::Denoisers::Denoiser::FRAGMENTSHADER,
-                                                                          InferenceEngine::AlgorithmConfig::Denoisers::DenoiserAlgorithm ::SPATIALDENOIRSER};
-        } else if (env->CallBooleanMethod(jalgo, isDenoiseSPATIALDENOISER) && env->CallBooleanMethod(jalgo, isDenoiseCOMPUTESHADER)) {
-            algo.denoisers = InferenceEngine::AlgorithmConfig::Denoisers {InferenceEngine::AlgorithmConfig::Denoisers::Denoiser::COMPUTESHADER,
                                                                           InferenceEngine::AlgorithmConfig::Denoisers::DenoiserAlgorithm ::SPATIALDENOIRSER};
         } else {
             throw std::runtime_error("no such denoiser");
         }
     }
-    {
-        // basic cnn
-        jmethodID isBasicCNN = env->GetMethodID(algoCfgClass, "isBasicCNN", "()Z");
-        if (env->CallBooleanMethod(jalgo, isBasicCNN)) {
-            algo.basicCNN = InferenceEngine::AlgorithmConfig::BasicCNN {snn::Device::GPU};
-        }
-    }
+
     {
         // classifiers
         jmethodID isClassifierNONE           = env->GetMethodID(algoCfgClass, "isClassifierNONE", "()Z");
         jmethodID isClassifierResnet18       = env->GetMethodID(algoCfgClass, "isClassifierResnet18", "()Z");
         jmethodID isClassifierMobilenetv2    = env->GetMethodID(algoCfgClass, "isClassifierMobilenetv2", "()Z");
-        jmethodID isClassifierFRAGMENTSHADER = env->GetMethodID(algoCfgClass, "isClassifierFRAGMENTSHADER", "()Z");
-        jmethodID isClassifierCOMPUTESHADER  = env->GetMethodID(algoCfgClass, "isClassifierCOMPUTESHADER", "()Z");
 
         if (env->CallBooleanMethod(jalgo, isClassifierResnet18) || env->CallBooleanMethod(jalgo, isClassifierMobilenetv2)) {
             modelType = InferenceEngine::ModelType::CLASSIFICATION;
         }
 
         if (env->CallBooleanMethod(jalgo, isClassifierNONE)) {
-        } else if (env->CallBooleanMethod(jalgo, isClassifierResnet18) && env->CallBooleanMethod(jalgo, isClassifierFRAGMENTSHADER)) {
+        } else if (env->CallBooleanMethod(jalgo, isClassifierResnet18)) {
             // Connect this part with snn.h's algo struct
-            SNN_LOGI("resnet18 fragmentshader");
+            SNN_LOGI("resnet18 compute shader");
             algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::FRAGMENTSHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::RESNET18};
-        } else if (env->CallBooleanMethod(jalgo, isClassifierResnet18) && env->CallBooleanMethod(jalgo, isClassifierCOMPUTESHADER)) {
-            SNN_LOGI("resnet18 computeshader");
-            algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::COMPUTESHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::RESNET18};
-        } else if (env->CallBooleanMethod(jalgo, isClassifierResnet18) && !env->CallBooleanMethod(jalgo, isClassifierFRAGMENTSHADER) &&
-                    !env->CallBooleanMethod(jalgo, isClassifierCOMPUTESHADER)) {
-            SNN_LOGI("Resnet18 default with fragment shader");
-            algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::FRAGMENTSHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::RESNET18};
-        } else if (env->CallBooleanMethod(jalgo, isClassifierMobilenetv2) && env->CallBooleanMethod(jalgo, isClassifierFRAGMENTSHADER)) {
+                    InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::COMPUTESHADER,
+                                                                   InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::RESNET18};
+        }  else if (env->CallBooleanMethod(jalgo, isClassifierMobilenetv2)) {
             // Connect this part with snn.h's algo struct
-            SNN_LOGI("Mobilenetv2 fragmentshader");
+            SNN_LOGI("Mobilenetv2 compute shader");
             algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::FRAGMENTSHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::MOBILENETV2};
-        } else if (env->CallBooleanMethod(jalgo, isClassifierMobilenetv2) && env->CallBooleanMethod(jalgo, isClassifierCOMPUTESHADER)) {
-            SNN_LOGI("Mobilenetv2 computeshader");
-            algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::COMPUTESHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::MOBILENETV2};
-        } else if (env->CallBooleanMethod(jalgo, isClassifierMobilenetv2) && !env->CallBooleanMethod(jalgo, isClassifierFRAGMENTSHADER) &&
-                    !env->CallBooleanMethod(jalgo, isClassifierCOMPUTESHADER)) {
-            SNN_LOGI("Mobilenetv2 default with fragment shader");
-            algo.classifiers =
-                InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::FRAGMENTSHADER,
-                                                               InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::MOBILENETV2};
+                    InferenceEngine::AlgorithmConfig::Classifiers {dumpOutputs, InferenceEngine::AlgorithmConfig::Classifiers::Classifier::COMPUTESHADER,
+                                                                   InferenceEngine::AlgorithmConfig::Classifiers::ClassifierAlgorithm::MOBILENETV2};
         }
     }
     {
         // detections
         jmethodID isDetectionNONE           = env->GetMethodID(algoCfgClass, "isDetectionNONE", "()Z");
         jmethodID isDetectionYolov3         = env->GetMethodID(algoCfgClass, "isDetectionYolov3", "()Z");
-        jmethodID isDetectionFRAGMENTSHADER = env->GetMethodID(algoCfgClass, "isDetectionFRAGMENTSHADER", "()Z");
-        jmethodID isDetectionCOMPUTESHADER  = env->GetMethodID(algoCfgClass, "isDetectionCOMPUTESHADER", "()Z");
 
         if (env->CallBooleanMethod(jalgo, isDetectionYolov3)) {
             modelType = InferenceEngine::ModelType::DETECTION;
         }
 
         if (env->CallBooleanMethod(jalgo, isDetectionNONE)) {
-        } else if (env->CallBooleanMethod(jalgo, isDetectionYolov3) && env->CallBooleanMethod(jalgo, isDetectionFRAGMENTSHADER)) {
+        } else if (env->CallBooleanMethod(jalgo, isDetectionYolov3)) {
             // Connect this part with snn.h's algo struct
-            SNN_LOGI("yolov3 fragmentshader");
+            SNN_LOGI("yolov3 compute shader");
             algo.detections =
-                InferenceEngine::AlgorithmConfig::Detections {InferenceEngine::AlgorithmConfig::Detections::Detection::FRAGMENTSHADER,
-                                                              InferenceEngine::AlgorithmConfig::Detections::DetectionAlgorithm::YOLOV3, dumpOutputs};
-        } else if (env->CallBooleanMethod(jalgo, isDetectionYolov3) && env->CallBooleanMethod(jalgo, isDetectionCOMPUTESHADER)) {
-            SNN_LOGI("yolov3 computeshader");
-            algo.detections =
-                InferenceEngine::AlgorithmConfig::Detections {InferenceEngine::AlgorithmConfig::Detections::Detection::COMPUTESHADER,
-                                                              InferenceEngine::AlgorithmConfig::Detections::DetectionAlgorithm::YOLOV3, dumpOutputs};
+                    InferenceEngine::AlgorithmConfig::Detections {InferenceEngine::AlgorithmConfig::Detections::Detection::COMPUTESHADER,
+                                                                  InferenceEngine::AlgorithmConfig::Detections::DetectionAlgorithm::YOLOV3, dumpOutputs};
         }
     }
-    //    {
-    //        // basic cnn
-    //        jmethodID isBasicCNN = env->GetMethodID(algoCfgClass, "isBasicCNN", "()Z");
-    //        if (env->CallBooleanMethod(jalgo, isBasicCNN)) {
-    //            algo.basicCNN = InferenceEngine::AlgorithmConfig::BasicCNN{snn::Device::GPU};
-    //        }
-    //    }
 
     {
         jmethodID isStyleTransferNONE         = env->GetMethodID(algoCfgClass, "isStyleTransferNONE", "()Z");

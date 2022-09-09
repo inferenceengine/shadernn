@@ -23,11 +23,6 @@ public class AlgorithmConfig {
         BASIC_CNN
     }
 
-    public enum FrameCount {
-        ONE,
-        TWO
-    }
-
     public enum DenoiserAlgorithm {
         NONE, AIDENOISER, SPATIALDENOISER
     }
@@ -38,10 +33,6 @@ public class AlgorithmConfig {
 
     public enum Clearance {
         NONE, SPRINT3CPU, SPRINT3DSP, SPRINT4CPU, SPRINT4DSP, SPRINT5CPU, SPRINT5DSP
-    }
-
-    public enum BasicCNN {
-        NONE, BASIC_CNN
     }
 
     public enum ClassifierAlgorithm {
@@ -69,17 +60,14 @@ public class AlgorithmConfig {
     private String[] mobilenetClasses = {"None", "Class 1", "Class 2"};
 
     private Pipeline pipeline;
-    private FrameCount frameCount;
     private Denoiser denoiser;
     private DenoiserAlgorithm denoiserAlgorithm;
-    private boolean ssbo;
     private Clearance clearance;
     private ClassifierAlgorithm classifierAlgorithm;
     private Classifier classifier;
     private DetectionAlgorithm detectionAlgorithm;
     private Detection detection;
     private boolean temporalFilter;
-    private BasicCNN alexNet;
     private StyleTransfer styleTransferAlgorithm;
 
     AlgorithmConfig() {
@@ -88,11 +76,9 @@ public class AlgorithmConfig {
 
     private void init() {
         pipeline = Pipeline.CLEARANCE1FRAME;
-        frameCount = FrameCount.ONE;
         denoiserAlgorithm = DenoiserAlgorithm.NONE;
         denoiser = Denoiser.FRAGMENTSHADER;
         clearance = Clearance.NONE;
-        alexNet = BasicCNN.NONE;
         classifierAlgorithm = ClassifierAlgorithm.NONE;
         classifier = Classifier.FRAGMENTSHADER;
         detectionAlgorithm = DetectionAlgorithm.NONE;
@@ -122,10 +108,6 @@ public class AlgorithmConfig {
         return this.pipeline;
     }
 
-    void setDenoiser(Denoiser denoiser) {
-        this.denoiser = denoiser;
-    }
-
     void setDenoiserAlgorithm(DenoiserAlgorithm denoiserAlgorithm) {
         this.denoiserAlgorithm = denoiserAlgorithm;
     }
@@ -143,19 +125,12 @@ public class AlgorithmConfig {
     }
 
     void setSSBO(boolean ssbo) {
-        this.ssbo = ssbo;
-    }
-
-    public boolean getSSBO() {
-        return this.ssbo;
+        //this.ssbo = ssbo;
     }
 
     public void setClearance(Clearance clearance) {
         this.clearance = clearance;
     }
-
-    public void setBasicCNN(BasicCNN model) { this.alexNet = model;}
-    public BasicCNN getBasicCNN() {return this.alexNet; }
 
     public Clearance getClearance() {
         return this.clearance;
@@ -169,63 +144,11 @@ public class AlgorithmConfig {
         return this.temporalFilter;
     }
 
-    public boolean isFrameCountONE() {
-        return this.frameCount == FrameCount.ONE;
-    }
-
     public boolean isDenoiseNONE() {
         return denoiserAlgorithm == DenoiserAlgorithm.NONE;
     }
 
-    public boolean isDenoiseFRAGMENTSHADER() {
-        return denoiser == Denoiser.FRAGMENTSHADER;
-    }
-
-    public boolean isDenoiseCOMPUTESHADER() {
-        return denoiser == Denoiser.COMPUTESHADER;
-    }
-
-    public boolean isDenoiseAIDENOISER() {return  denoiserAlgorithm == DenoiserAlgorithm.AIDENOISER; }
-
     public boolean isDenoiseSPATIALDENOISER() {return  denoiserAlgorithm == DenoiserAlgorithm.SPATIALDENOISER; }
-
-    public boolean isSSBO() {
-        return ssbo;
-    }
-
-    public boolean isClearanceNONE() {
-        return clearance == Clearance.NONE;
-    }
-
-    public boolean isClearanceSPRINT3CPU() {
-        return clearance == Clearance.SPRINT3CPU;
-    }
-
-    public boolean isClearanceSPRINT3DSP() {
-        return clearance == Clearance.SPRINT3DSP;
-    }
-
-    public boolean isClearanceSPRINT4CPU() {
-        return clearance == Clearance.SPRINT4CPU;
-    }
-
-    public boolean isClearanceSPRINT4DSP() {
-        return clearance == Clearance.SPRINT4DSP;
-    }
-
-    public boolean isClearanceSPRINT5CPU() {
-        return clearance == Clearance.SPRINT5CPU;
-    }
-
-    public boolean isClearanceSPRINT5DSP() {
-        return clearance == Clearance.SPRINT5DSP;
-    }
-
-    public boolean isTemporalFilter() {
-        return temporalFilter;
-    }
-
-    public boolean isBasicCNN() { return alexNet == BasicCNN.BASIC_CNN;}
 
     public boolean isStyleTransferNONE() { return styleTransferAlgorithm == StyleTransfer.NONE; }
 
@@ -267,14 +190,6 @@ public class AlgorithmConfig {
         return this.classifierAlgorithm == ClassifierAlgorithm.MOBILENETV2;
     }
 
-    public boolean isClassifierFRAGMENTSHADER() {
-        return this.classifier == Classifier.FRAGMENTSHADER;
-    }
-
-    public boolean isClassifierCOMPUTESHADER() {
-        return this.classifier == Classifier.COMPUTESHADER;
-    }
-
     public DetectionAlgorithm getDetectionAlgorithm() {
         return this.detectionAlgorithm;
     }
@@ -297,13 +212,5 @@ public class AlgorithmConfig {
 
     public boolean isDetectionYolov3() {
         return this.detectionAlgorithm == DetectionAlgorithm.YOLOV3;
-    }
-
-    public boolean isDetectionFRAGMENTSHADER() {
-        return this.detection == Detection.FRAGMENTSHADER;
-    }
-
-    public boolean isDetectionCOMPUTESHADER() {
-        return this.detection == Detection.COMPUTESHADER;
     }
 }

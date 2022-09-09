@@ -504,6 +504,11 @@ class MainRenderer implements GLSurfaceView.Renderer {
         mainActivity.runOnUiThread(()->classifierResult.setText(text));
     }
 
+    private void DefaultClassifierField() {
+        final String text = String.format("");
+        mainActivity.runOnUiThread(()->classifierResult.setText(text));
+    }
+
     MainRenderer(Context context)
     {
         mainActivity = (MainActivity)context;

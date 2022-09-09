@@ -33,36 +33,6 @@
     </group>
 
     <item
-        android:id="@+id/hide_show_pipelines"
-        android:title="Hide/Show Pipelines"
-        app:showAsAction="never"
-        android:checkable="true">
-    </item>
-    <group
-        android:id="@+id/pipeline_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/clearance_1_frame_pipeline"
-            android:title="1 Frame Pipeline"
-            android:checked="true">
-        </item>
-        <item
-            android:id="@+id/clearance_2_frame_pipeline"
-            android:title="2 Frame Pipeline">
-        </item>
-        <item
-            android:id="@+id/hybrid_dl_pipeline"
-            android:title="Hybrid Deep Learning"
-            android:visible="false">
-        </item>
-    </group>
-
-    <item
-        android:id="@+id/divider_1"
-        android:title="*******************************"/>
-
-    <item
         android:id="@+id/hide_show_stage_1"
         android:title="Hide/Show Denoisers"
         app:showAsAction="never"
@@ -79,137 +49,15 @@
             android:checked="true">
         </item>
         <item
-            android:id="@+id/clearance_1_frame_aidenoise"
-            android:title="AI Denoise"
-            android:checked="false">
-        </item>
-        <item
             android:id="@+id/clearance_1_frame_spatialdenoise"
             android:title="Spatial Denoise"
             android:checked="false">
         </item>
     </group>
 
-    <group
-        android:id="@+id/clearance_1_frame_stage_1_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/divider_0"
-            android:title="------------------------------------------"
-            android:checkable="false"/>
-        <item
-            android:id="@+id/clearance_fragment_shader"
-            android:title="Fragment Shader"></item>
-        <item
-            android:id="@+id/clearance_compute_shader"
-            android:title="Compute Shader"></item>
-    </group>
-
-    <group
-        android:id="@+id/clearance_1_frame_stage_1_additions"
-        android:checkableBehavior="all"
-        android:visible="false">
-        <item
-            android:id="@+id/clearance_toggle_ssbo"
-            android:title="Shader Storage Buffer Object">
-        </item>
-    </group>
-    <group
-        android:id="@+id/clearance_2_frame_stage_1_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/clearance_2_frame_no_denoise"
-            android:title="No Denoise"
-            android:checked="true">
-        </item>
-    </group>
-
-
-    <group
-        android:id="@+id/hybrid_dl_stage_0_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/hybrid_dl_no_denoiser"
-            android:title="No Denoise"
-            android:checked="true">
-        </item>
-        <item
-            android:id="@+id/hybrid_dl_aidenoise"
-            android:title="AI Denoise"
-            android:checked="false">
-        </item>
-        <item
-            android:id="@+id/hybrid_dl_spatialdenoise"
-            android:title="Spatial Denoise"
-            android:checked="false">
-        </item>
-    </group>
-
-    <group
-        android:id="@+id/hybrid_dl_stage_1_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/hybrid_dl_fragment_shader"
-            android:title="Fragment Shader">
-        </item>
-        <item
-            android:id="@+id/hybrid_dl_compute_shader"
-            android:title="Compute Shader">
-        </item>
-    </group>
-    <group
-        android:id="@+id/hybrid_dl_stage_1_additions"
-        android:checkableBehavior="all"
-        android:visible="false">
-        <item
-            android:id="@+id/hybrid_dl_toggle_ssbo"
-            android:title="Shader Storage Buffer Object">
-        </item>
-    </group>
-
-    <group
-        android:id="@+id/standalone_alg"
-        android:checkableBehavior="all"
-        android:visible="false">
-        <item
-            android:id="@+id/ai_denoise_clearance_switch"
-            android:title="AI Denoise Clearance"
-            app:showAsAction="never"/>
-        <item
-            android:id="@+id/ai_denoise_clearance_dsp_switch"
-            android:title="AI Denoise Clearance on DSP"
-            app:showAsAction="never"/>
-        <item
-            android:id="@+id/ai_denoise_switch"
-            android:title="AI Denoise"
-            app:showAsAction="never"/>
-    </group>
-
-    <group
-        android:id="@+id/ai_denoises"
-        android:checkableBehavior="all"
-        android:visible="false">
-        <item
-            android:id="@+id/ai_denoise"
-            android:title="@string/ai_denoise"
-            android:visible="false"
-            app:showAsAction="never"/>
-    </group>
     <item
         android:id="@+id/divider3"
         android:title="*******************************" />
-    <item
-        android:id="@+id/basic_cnn_additions"
-        android:checkable="true"
-        android:title="Basic Alex Net"
-        android:visible="true" />
-    <item
-        android:id="@+id/divider_3"
-        android:title="*******************************"/>
 
     <item
         android:id="@+id/hide_show_classifiers"
@@ -231,24 +79,6 @@
         </item>
          <item android:id="@+id/mobilenetv2_classifier"
             android:title="@string/mobilenetv2_classifier">
-        </item>
-    </group>
-
-    <group
-        android:id="@+id/classifier_shader_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item
-            android:id="@+id/divider_4"
-            android:title="------------------------------------------"
-            android:checkable="false"/>
-        <item
-            android:id="@+id/classifier_fragment_shader"
-            android:title="Fragment Shader">
-        </item>
-        <item
-            android:id="@+id/classifier_compute_shader"
-            android:title="Compute Shader">
         </item>
     </group>
 
