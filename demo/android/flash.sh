@@ -35,6 +35,7 @@ push_phone_json_models()
     adb push ${ROOT}/../../modelzoo/SpatialDenoise/spatialDenoise.json /data/local/tmp/jsonModel
     adb push ${ROOT}/../../modelzoo/U-Net/unet.json /data/local/tmp/jsonModel
     adb push ${ROOT}/../../modelzoo/Yolov3-tiny/yolov3-tiny.json /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/Yolov3-tiny/yolov3-tiny_finetuned.json /data/local/tmp/jsonModel
     adb push ${ROOT}/../../modelzoo/StyleTransfer/*.json /data/local/tmp/jsonModel
 }
 

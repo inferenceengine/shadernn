@@ -268,6 +268,7 @@ struct InferenceEngine {
     struct SNNModelOutput {
         ModelType modelType = ModelType::OTHER;
         int classifierOutput;
+        std::vector<std::vector<float>> detectionOutput;
     };
 
     typedef struct Item {

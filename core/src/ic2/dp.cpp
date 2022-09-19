@@ -44,6 +44,7 @@ DECLARE_LAYER(Flatten);
 DECLARE_LAYER(Pad);
 DECLARE_LAYER(BatchNormalization);
 DECLARE_LAYER(InstanceNorm);
+DECLARE_LAYER(YOLO);
 
 std::unordered_map<std::string, snn::dp::LayerCreator> LayerRegistryDict;
 
@@ -153,6 +154,7 @@ bool snn::dp::initLayerRegisty() {
     REGISTER_LAYER(Pad);
     REGISTER_LAYER(BatchNormalization);
     REGISTER_LAYER(InstanceNorm);
+    REGISTER_LAYER(YOLO);
     return 0;
 }
 

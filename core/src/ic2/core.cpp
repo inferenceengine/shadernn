@@ -620,6 +620,10 @@ void snn::MixedInferenceCore::run(snn::MixedInferenceCore::RunParameters& rp) {
                                         1;
     }
 
+    if (rp.modelOutput.modelType == InferenceEngine::ModelType::DETECTION && stages[stages.size() - 1].backend == Backend::Backend_CPU) {
+        rp.modelOutput.detectionOutput = stages[stages.size() - 1].stageOutputs[0].outputMat;
+    }
+
     debugger.pullDataFromGPU();
     // SNN_LOGD("%s:%d\n", __FUNCTION__,__LINE__);
     debugger.printLastResult();

@@ -20,7 +20,7 @@
 #include <string>
 #include "ic2/core.h"
 
-static constexpr const char* YOLOV3_MODEL_NAME = "yolov3-tiny.json";
+static constexpr const char* YOLOV3_MODEL_NAME = "yolov3-tiny_finetuned.json";
 
 namespace snn {
 class Yolov3Processor : public Processor {
@@ -40,6 +40,9 @@ private:
     std::string modelFileName_;
     bool compute_;
     bool dumpOutputs;
+
+    const std::size_t expectedHeight = 416;
+    const std::size_t expectedWidth  = 416;
 
     Yolov3Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
         : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute), dumpOutputs(dumpOutputs) {}
