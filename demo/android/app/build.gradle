@@ -39,9 +39,11 @@ android {
     buildTypes {
         debug {
             ndkConfig.abiFilters "arm64-v8a"
+            crunchPngs false
         }
         profile {
             initWith release
+            crunchPngs false
             ndkConfig.abiFilters "arm64-v8a"
             debuggable true
             jniDebuggable = true
@@ -55,6 +57,7 @@ android {
         release {
             ndkConfig.abiFilters "arm64-v8a"
             minifyEnabled false
+            crunchPngs false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
@@ -62,6 +65,7 @@ android {
         system {
             ndkConfig.abiFilters "arm64-v8a"
             minifyEnabled false
+            crunchPngs false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             externalNativeBuild {
                 cmake {
