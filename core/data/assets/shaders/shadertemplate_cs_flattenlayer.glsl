@@ -24,7 +24,8 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     ivec3 pos = ivec3(gl_GlobalInvocationID);
-    int z = pos.z/(uWidth*uHeight*4);        
+    //int z = pos.z/(uWidth*uHeight*4);      
+    int z = pos.z;   
     int offset = z*uWidth*uHeight*4;    
     int wh = uWidth*uHeight;
     for (int w = 0; w < uWidth; w+=1) 

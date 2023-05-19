@@ -226,6 +226,7 @@ core/data/jsonModel/resnet18_cifar10_0217-opt.param filter=lfs diff=lfs merge=lf
 core/data/jsonModel/resnet18_cifar10_0223.param filter=lfs diff=lfs merge=lfs -text
 core/data/jsonModel/unet.param filter=lfs diff=lfs merge=lfs -text
 core/data/jsonModel/yolov3-tiny.param filter=lfs diff=lfs merge=lfs -text
+core/data/assets/images/ant_y_channel.png filter=lfd diff=lfs merge=lfs -text
 modelzoo/ESPCN/ESPCN_2X_16_16_4.h5 filter=lfs diff=lfs merge=lfs -text
 modelzoo/ESPCN/ESPCN_2X_16_16_4.json filter=lfs diff=lfs merge=lfs -text
 modelzoo/ESPCN/ESPCN_2X_16_16_4.tflite filter=lfs diff=lfs merge=lfs -text

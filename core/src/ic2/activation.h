@@ -14,18 +14,12 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <set>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -39,18 +33,17 @@ struct ActivationDesc : CommonLayerDesc {
     }
 };
 
+// This is a base class to generates a shader for activation functions
 class ActivationLayer : public ShaderLayer {
 public:
     ActivationLayer(ActivationDesc&& d): ShaderLayer(std::move(d)), _desc(std::move(d)) {}
-    ~ActivationLayer() {}
+    virtual ~ActivationLayer() = default;
 
 protected:
     bool generateActivationSamplingCode(int& idxStartPlane, int nOutputChannels, std::string& uniformsDeclaration, std::set<int>& inputTextures,
                                         std::string& calculation) const;
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
 
-private:
+protected:
     ActivationDesc _desc;
 };
 

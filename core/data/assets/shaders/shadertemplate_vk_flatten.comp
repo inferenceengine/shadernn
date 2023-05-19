@@ -1,0 +1,58 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D uOutput;
+layout(set=0, binding=1) uniform PRECISION sampler3D uInput;
+
+layout(set=0, binding=2) uniform constBuffer {
+    ivec2 inputSize;
+} uConstant;
+
+void main()
+{
+    ivec3 pos = ivec3(gl_GlobalInvocationID);
+    int uWidth = uConstant.inputSize.x;
+    int uHeight = uConstant.inputSize.y;
+    int z = pos.z;   
+    int offset = z*uWidth*uHeight*4;    
+    int wh = uWidth*uHeight;
+    for (int w = 0; w < uWidth; w+=1) 
+    {
+       for (int h = 0; h < uHeight; h+=1) 
+       {
+           vec4 color0 = texelFetch(uInput, ivec3(w, h, z), 0);         
+           imageStore(uOutput,ivec3(offset+wh*0+h*uWidth+w, 0, 0),vec4(color0.r,0,0,0));
+           imageStore(uOutput,ivec3(offset+wh*1+h*uWidth+w, 0, 0),vec4(color0.g,0,0,0));
+           imageStore(uOutput,ivec3(offset+wh*2+h*uWidth+w, 0, 0),vec4(color0.b,0,0,0));
+           imageStore(uOutput,ivec3(offset+wh*3+h*uWidth+w, 0, 0),vec4(color0.a,0,0,0));            
+       }
+    }
+}

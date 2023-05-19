@@ -17,7 +17,8 @@
 #include <snn/snn.h>
 #include <snn/utils.h>
 #include <snn/imageTexture.h>
-#include "inferencegraph.h"
+#include "snn/inferencegraph.h"
+#include "inferencepass.h"
 #include "modelparser.h"
 #include <utility>
 #include <opencv2/core/mat.hpp>
@@ -33,6 +34,7 @@ struct YOLODesc : CommonLayerDesc {
     void parse(ModelParser& parser, int layerId);
 };
 
+// This class implements functionality of the final layer of YOLO model. It is processed on CPU.
 class YOLOLayer : public GenericModelLayer {
 public:
     YOLOLayer(YOLODesc&& d): GenericModelLayer(d), _yoloDesc(std::move(d)) {}
@@ -48,29 +50,18 @@ public:
         depth  = 1;
     }
 
-    virtual void computeImageTexture(FixedSizeArray<snn::ImageTexture>& inputMat, FixedSizeArray<snn::ImageTexture>& outputMat) override;
+    virtual void computeImageTexture(ImageTextureArray& inputMat, ImageTextureArray& outputMat) override;
 
-    virtual snn::InferenceGraph::LayerExecution getLayerExecutionLevel() const override { return executeBackend; }
-    virtual void setLayerExecutionLevel(snn::InferenceGraph::LayerExecution newExecution) override { executeBackend = newExecution; }
+    virtual snn::InferenceGraph::LayerExecutionType getLayerExecutionType() const override { return executeBackend; }
+    virtual void setLayerExecutionType(InferenceGraph::LayerExecutionType newExecution) override { executeBackend = newExecution; }
 
-    virtual GLSLShaders createGLSLShader(const LayerGenOptions& options) override {
-        (void) options;
-        return GLSLShaders();
-    };
-
-    virtual CPUPasses createCPUPasses(const CpuGenOptions& options) const override {
-        // auto dummyOptions = options;
-        CPUPasses pass;
-        pass.passes.program      = InferenceGraph::Pass::CPUProgram<float> {options.isTransitionLayer, options.isLastLayer};
-        pass.passes.transformMat = std::pair<std::vector<std::vector<float>>, std::vector<float>>(std::vector<std::vector<float>>(), std::vector<float>());
-        return pass;
-    };
+    virtual void createInferencePasses(const LayerGenOptions& /*options*/) override {}
 
     virtual bool isTransition() const override { return true; }
 
 private:
     YOLODesc _yoloDesc;
-    snn::InferenceGraph::LayerExecution executeBackend = snn::InferenceGraph::LayerExecution::CPU;
+    snn::InferenceGraph::LayerExecutionType executeBackend = snn::InferenceGraph::LayerExecutionType::CPU;
 };
 
 }; // namespace dp

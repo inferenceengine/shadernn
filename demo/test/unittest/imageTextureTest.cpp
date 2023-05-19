@@ -30,11 +30,36 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
-int main() {
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
+
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    ShaderUnitTest test;
-    test.testImageTexture();
+    bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    int width = 8;
+    int height = 8;
+    int channel = 6;
+    ncnn::Mat matA = RandomMat(width, height, channel);
+
+    ShaderUnitTest test(backend);
+
+    cv::Mat inputMat = NCNNMat2CVMat(matA);
+
+    test.testImageTexture(inputMat, width, height, channel);
 
     return 0;
 }

@@ -15,51 +15,40 @@
 #pragma once
 
 #include "processor.h"
-#include <snn/texture.h>
-#include <opencv2/core/mat.hpp>
+#include "inferenceengine.h"
+#include "modelProcessorParams.h"
+
 #include <string>
-#include "ic2/core.h"
+#include <memory>
 
 static std::map<snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm, std::string> modelMap = {
-    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::CANDY, "candy-9_simplified.json"},
-    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::RAIN_PRINCESS, "rain-princess-9_simplified.json"},
-    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::MOSAIC, "mosaic-9_simplified.json"},
-    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::POINTILISM, "pointilism-9_simplified.json"},
-    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::UDNIE, "udnie-9_simplified.json"},
+    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::CANDY, "StyleTransfer/candy-9_simplified.json"},
+    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::RAIN_PRINCESS, "StyleTransfer/rain-princess-9_simplified.json"},
+    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::MOSAIC, "StyleTransfer/mosaic-9_simplified.json"},
+    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::POINTILISM, "StyleTransfer/pointilism-9_simplified.json"},
+    {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::UDNIE, "StyleTransfer/udnie-9_simplified.json"},
     {snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm::NONE, ""}};
 
 namespace snn {
-class styleTransferProcessor : public Processor {
+
+class StyleTransferProcessor : public Processor, protected ModelProcessorParams {
 public:
-    ~styleTransferProcessor() override = default;
-    void submit(Workload&) override;
-
-    static std::unique_ptr<styleTransferProcessor>
-    createStyleTransfer(ColorFormat format, const snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm styleModel, bool compute = false,
-                        bool dumpOutputs = false) {
-        std::string modelFileName = modelMap[styleModel];
-        return std::unique_ptr<styleTransferProcessor>(new styleTransferProcessor(format, modelFileName.c_str(), compute, dumpOutputs));
-    }
-
+    virtual ~StyleTransferProcessor() = default;
+    // TODO: Why returning empty string ?
     std::string getModelName() override { return ""; }
 
-private:
-    snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm _currentAlgorithm;
-    std::unique_ptr<MixedInferenceCore> _ic2;
-    std::unordered_map<GLuint, std::shared_ptr<Texture>> _frameTextures;
-    std::string _modelFileName;
-    bool _compute, _dumpOutputs;
+    static const uint32_t MODEL_IMAGE_WIDTH = 224;
+    static const uint32_t MODEL_IMAGE_HEIGHT = 224;
 
-    styleTransferProcessor(ColorFormat format, const std::string& modelFileName, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), _modelFileName(modelFileName), _compute(compute), _dumpOutputs(dumpOutputs) {}
+    static std::unique_ptr<StyleTransferProcessor>
+    createStyleTransfer(ColorFormat format, const snn::InferenceEngine::AlgorithmConfig::StyleTransfer::StyleTransferAlgorithm styleModel, Precision precision,
+                        bool compute = true, bool dumpOutputs = false);
 
-    gl::TextureObject* getFrameTexture(GLuint id) {
-        auto& t = _frameTextures[id];
-        // Create a thin shell around textureId
-        if (!t) {
-            t = Texture::createAttached(GL_TEXTURE_2D, id);
-        }
-        return t.get();
-    }
+protected:
+    StyleTransferProcessor(ColorFormat format, const std::string& modelFileName, Precision precision, bool compute, bool dumpOutputs)
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}})
+        , ModelProcessorParams(modelFileName, {MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, 1, 4}, precision, compute, dumpOutputs)
+    {}
 };
+
 } // namespace snn

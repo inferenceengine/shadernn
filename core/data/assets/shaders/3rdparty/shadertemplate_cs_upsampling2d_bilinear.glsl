@@ -12,31 +12,36 @@ void main()
     
     if(pos.x < outputImgSize.x && pos.y < outputImgSize.y && pos.z < outputImgSize.z)
     {
+        float offsetX = 0.5 - 0.5 * scale.x;
+        float offsetY = 0.5 - 0.5 * scale.y;
+
         float srcX = float(pos.x) * scale.x;
-        int x1 = int(floor(srcX));
-        int x11 = clamp(x1, 0, inputImgSize.x - 1);
-        int x12 = clamp(x1 + 1, 0, inputImgSize.x - 1);
-        vec4 factorX = vec4(srcX - float(x1));
+        srcX = srcX - offsetX;
+        srcX = clamp(srcX, 0.0f, float(inputImgSize.x - 1));
+        int x11 = int(floor(srcX));
+        int x12 = x11 + 1;
+
         float srcY = float(pos.y) * scale.y;
-        int y1 = int(floor(srcY));
-        int y11 = clamp(y1, 0, inputImgSize.y - 1);
-        int y12 = clamp(y1 + 1, 0, inputImgSize.y - 1);
-        vec4 factorY = vec4(srcY - float(y1));
+        srcY = srcY - offsetY;
+        srcY = clamp(srcY, 0.0f, float(inputImgSize.y - 1));
+        int y11 = int(floor(srcY));
+        int y12 = y11 + 1;
         #ifdef INPUT_TEXTURE_2D
-        vec4 res1 = imageLoad(uInput, ivec2(x11, y12));
-		vec4 res2 = imageLoad(uInput, ivec2(x12, y12));
-		vec4 res3 = imageLoad(uInput, ivec2(x11, y11));
-		vec4 res4 = imageLoad(uInput, ivec2(x12, y11));
+        vec4 res4 = imageLoad(uInput, ivec2(x11, y12));
+        vec4 res3 = imageLoad(uInput, ivec2(x12, y12));
+        vec4 res1 = imageLoad(uInput, ivec2(x11, y11));
+        vec4 res2 = imageLoad(uInput, ivec2(x12, y11));
         #else
-        vec4 res1 = imageLoad(uInput, ivec3(x11, y12, pos.z));
-        vec4 res2 = imageLoad(uInput, ivec3(x12, y12, pos.z));
-        vec4 res3 = imageLoad(uInput, ivec3(x11, y11, pos.z));
-        vec4 res4 = imageLoad(uInput, ivec3(x12, y11, pos.z));
+        vec4 res4 = imageLoad(uInput, ivec3(x11, y12, pos.z));
+        vec4 res3 = imageLoad(uInput, ivec3(x12, y12, pos.z));
+        vec4 res1 = imageLoad(uInput, ivec3(x11, y11, pos.z));
+        vec4 res2 = imageLoad(uInput, ivec3(x12, y11, pos.z));
         #endif
-        vec4 res11 = (vec4(1.0) - factorX) * res1 + factorX * res2;
-        vec4 res12 = (vec4(1.0) - factorX) * res3 + factorX * res4;
-        vec4 outValue = factorY * res11 + (vec4(1.0) - factorY) * res12;
-        outValue = (outValue - means) * norms;    
+        vec4 outValue = res1 * vec4((float(x12) - srcX) * (float(y12) - srcY)) +
+        res2 * vec4((srcX - float(x11)) * (float(y12) - srcY)) +
+        res3 * vec4((srcX - float(x11)) * (srcY - float(y11))) +
+        res4 * vec4((float(x12) - srcX) * (srcY - float(y11)));
+        outValue = (outValue - means) * norms;
         #ifdef OUTPUT_TEXTURE_2D
         imageStore(uOutput, ivec2(pos.x, pos.y), outValue);
         #else

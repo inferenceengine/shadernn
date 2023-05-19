@@ -14,18 +14,10 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
+#include "genericlayer.h"
+#include "snn/snn.h"
 #include "modelparser.h"
 #include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
-#include "genericlayer.h"
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -35,16 +27,15 @@ struct ConcatenateDesc : CommonLayerDesc {};
 class ConcatenateLayer : public ShaderLayer {
 public:
     ConcatenateLayer(ConcatenateDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
-    ~ConcatenateLayer() {}
+    virtual ~ConcatenateLayer() = default;
 
 protected:
-    bool generateConcatGLSamplingCode(int& idxStartPlane, int nOutputChannels, std::string& uniformsDeclaration, std::set<int>& inputTextures,
-                                      std::string& calculation) const;
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-    void getOutputDims(uint32_t& width, uint32_t& height, uint32_t& depthOut) const override;
+    void getOutputDims(uint32_t& width, uint32_t& height, uint32_t& depthOut) const override {
+        width    = inputDims[0].width;
+        height   = inputDims[0].height;
+        depthOut = inputDims[0].depth + inputDims[1].depth;
+    }
 
-private:
     ConcatenateDesc _desc;
 };
 

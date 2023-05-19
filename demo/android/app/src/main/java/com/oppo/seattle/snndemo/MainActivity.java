@@ -16,63 +16,47 @@ package com.oppo.seattle.snndemo;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.hardware.camera2.CameraManager;
 import android.net.Uri;
-import android.opengl.EGLExt;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.Surface;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.MimeTypeMap;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuCompat;
 
 import java.io.File;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
-
-import javax.microedition.khronos.egl.EGL10;
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.egl.EGLContext;
-import javax.microedition.khronos.egl.EGLDisplay;
-import javax.microedition.khronos.opengles.GL10;
 
 public class MainActivity extends AppCompatActivity {
     private static final int RESULT_LOAD_VIDEO = 1;
     static String TAG = "SNN";
     CameraPreview cameraPreview = new CameraPreview();
     VideoReader videoReader;
-    DSP dsp;
-    boolean clearance = false;
-    boolean fastCV = false;
-    boolean aiDenoise = false;
-    boolean aiDenoiseClearance = false;
-    boolean aiDenoiseClearanceDsp = false;
-    boolean spatialDenoiser = false;
-    boolean spatialDenoiserClearance = false;
-    boolean clearanceTemporalFiltering = false;
-    boolean basic_cnn = false;
-    int algVersion = 0;
     RecordingManager recordingManager;
     MenuCore mMenuCore;
+
+    private TextView tvFps;
+    private FrameTimeAverager frameTime = new FrameTimeAverager();
+    private long lastFpsTime = 0;
+    private long frameCounter = 0;
+
+    private TextView classifierResult;
 
     public MainActivity() {
         videoReader = new VideoReader(this);
@@ -98,14 +82,26 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate: main activity created.");
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT); // fix to portrait mode.
-        setContentView(R.layout.activity_main);
+        setContentView();
+
         recordingManager = RecordingManager.getInstance(this);
-        Button buttonRecord = findViewById(R.id.buttonRecord);
-        buttonRecord.setOnClickListener( v -> toggleRecord(buttonRecord));
-        //BEGIN DSP
-        dsp = new DSP(this);
-        //END DSP
+        // TODO: If we need recording functionality, add Record action item to menu
+        // and modify the commented code below appropriately
+        //
+        // Button buttonRecord = findViewById(R.id.buttonRecord);
+        // buttonRecord.setOnClickListener( v -> toggleRecord(buttonRecord));
+
+        AssetManager am = getAssets();
+        String internalStoragePath = getFilesDir().getAbsolutePath();
+        String externalStorageDir = getExternalFilesDir(null).getAbsolutePath();
+
+        tvFps = findViewById(R.id.textViewFPS);
+        classifierResult = findViewById(R.id.classifierOutput);
+
+        NativeLibrary.init(am, internalStoragePath, externalStorageDir);
     }
+
+    protected void setContentView() {}
 
     /**
      * Toggles whether or not this is recording.
@@ -132,11 +128,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu){
-        if(super.onCreateOptionsMenu(menu)){
+    public boolean onCreateOptionsMenu(Menu menu) {
+        if (super.onCreateOptionsMenu(menu)) {
             Log.d(TAG, "onCreateOptionsMenu: menu created");
             getMenuInflater().inflate(R.menu.main_activity_menu, menu);
             mMenuCore = new MenuCore(this, menu);
+            MenuCompat.setGroupDividerEnabled(menu, true);
             return true;
         }
         else {
@@ -145,8 +142,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
-         return mMenuCore.onOptionsItemSelected(item);
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.open_settings) {
+            // We don't have any settings yet
+            return true;
+        }
+        if (item.getItemId() == R.id.style_transfer_choices) {
+            return true;
+        }
+
+        return mMenuCore.onOptionsItemSelected(item);
     }
 
     public boolean keepMenuOpen(MenuItem item) {
@@ -251,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startCameraPreview() {
         cameraPreview.startCamera((CameraManager) Objects.requireNonNull(getSystemService(CAMERA_SERVICE)),
-                getWindowManager().getDefaultDisplay().getRotation());
+                getWindowManager().getDefaultDisplay().getRotation(), null);
     }
 
     public void loadVideoFromGallery() {
@@ -283,6 +288,37 @@ public class MainActivity extends AppCompatActivity {
 
     public void videoStopped() {
         initCamera();
+    }
+
+    public void UpdateFps()
+    {
+        if (0 == lastFpsTime)
+            lastFpsTime = System.nanoTime();
+        else {
+            long current = System.nanoTime();
+            long time = current - lastFpsTime;
+            if (time > 1e9) {
+                frameTime.Update((float)time / frameCounter);
+                float fps = 1e9f / frameTime.current;
+                lastFpsTime = current;
+                frameCounter = 0;
+                if (null != tvFps) {
+                    final String text = String.format(
+                            "FPS = %.2f ([%.2f, %.2f]ms)",
+                            fps,
+                            frameTime.current / 1e6f,
+                            frameTime.low / 1e6f
+                    );
+                    tvFps.setText(text);
+                }
+            }
+        }
+        ++frameCounter;
+    }
+
+    public void UpdateClassifierResult(AlgorithmConfig algorithmConfig) {
+        final String text = String.format("Classifier output = " + algorithmConfig.getClassifierOutput());
+        classifierResult.setText(text);
     }
 }
 
@@ -340,92 +376,6 @@ abstract class ModelSelection implements Comparable<ModelSelection> {
     }
 }
 
-class MainView extends GLSurfaceView {
-    String TAG = "SNN";
-    final MainRenderer renderer;
-    public MainView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        Log.d(TAG, "onCreate: main view.");
-        getHolder().setFixedSize(1080, 1920);
-        setEGLContextFactory(new ContextFactory());
-        setEGLConfigChooser(new ConfigChooser());
-        renderer = new MainRenderer(context);
-        setRenderer(renderer);
-    }
-
-    private class ConfigChooser implements EGLConfigChooser {
-        public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
-            EGLConfig [] configs = new EGLConfig[1];
-            int [] num_config = new int[1];
-            int [] attrib_list  = new int[] {
-                    EGL10.EGL_RED_SIZE, 8,
-                    EGL10.EGL_GREEN_SIZE, 8,
-                    EGL10.EGL_BLUE_SIZE, 8,
-                    EGL10.EGL_ALPHA_SIZE, 8,
-                    EGL10.EGL_DEPTH_SIZE, 24,
-                    EGL10.EGL_STENCIL_SIZE, 8,
-                    EGL10.EGL_SURFACE_TYPE, EGL10.EGL_WINDOW_BIT,
-                    EGLExt.EGL_RECORDABLE_ANDROID, 1,
-                    EGL10.EGL_NONE,
-            };
-            boolean res = egl.eglChooseConfig(display, attrib_list, configs, configs.length, num_config);
-            if (res && num_config[0] > 0) {
-                return configs[0];
-            }
-
-            return null;
-        }
-    }
-
-    private class ContextFactory implements EGLContextFactory {
-        int EGL_CONTEXT_CLIENT_VERSION = 0x3098;
-        int EGL_CONTEXT_FLAGS_KHR = 0x30FC;
-        int EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR = 1;
-        public EGLContext createContext(EGL10 egl, EGLDisplay display, EGLConfig config) {
-            int[] release_attrib_list = {
-                    EGL_CONTEXT_CLIENT_VERSION, 3,
-                    EGL10.EGL_NONE,
-            };
-            int[] debug_attrib_list = {
-                    EGL_CONTEXT_CLIENT_VERSION, 3,
-                    EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
-                    EGL10.EGL_NONE,
-            };
-            return egl.eglCreateContext(display, config, EGL10.EGL_NO_CONTEXT,
-                    BuildConfig.DEBUG ? debug_attrib_list : release_attrib_list);
-        }
-        public void destroyContext(EGL10 egl, EGLDisplay display,
-                                   EGLContext context) {
-            egl.eglDestroyContext(display, context);
-        }
-    }
-
-    public static float[] getGeometryProfile(float[] xArr, float[] yArr) {
-        if (xArr.length == 0 || xArr.length != yArr.length)
-            return null;
-        float massX = 0.f;
-        float massY = 0.f;
-        float minX = Float.MAX_VALUE;
-        float maxX = Float.MIN_VALUE;
-        float minY = Float.MAX_VALUE;
-        float maxY = Float.MIN_VALUE;
-        for (int i = 0; i < xArr.length; ++ i) {
-            massX += xArr[i];
-            massY += yArr[i];
-            minX = Math.min(minX, xArr[i]);
-            minY = Math.min(minY, yArr[i]);
-            maxX = Math.max(maxX, xArr[i]);
-            maxY = Math.max(maxY, yArr[i]);
-        }
-        float spanX = maxX - minX;
-        float spanY = maxY - minY;
-        float span = Math.max(spanX, spanY);
-        float massCenterX = massX / xArr.length;
-        float massCenterY = massY / xArr.length;
-        return new float[] {massCenterX, massCenterY, span};
-    }
-}
-
 class FrameTimeAverager
 {
     private static final int N = 10;
@@ -460,115 +410,4 @@ class FrameTimeAverager
         }
         average = sum / (float)count;
     }
-}
-
-class MainRenderer implements GLSurfaceView.Renderer {
-    private static String TAG = "SNN";
-    private long lastFpsTime = 0;
-    private long frameCounter = 0;
-    private MainActivity mainActivity;
-    private AssetManager am;
-    private TextView tvFps;
-    private TextView classifierResult;
-    private FrameTimeAverager frameTime = new FrameTimeAverager();
-    boolean animated = true;
-
-    private void UpdateFps()
-    {
-        if (0 == lastFpsTime)
-            lastFpsTime = System.nanoTime();
-        else {
-            long current = System.nanoTime();
-            long time = current - lastFpsTime;
-            if (time > 1e9) {
-                frameTime.Update((float)time / frameCounter);
-                float fps = 1e9f / frameTime.current;
-                lastFpsTime = current;
-                frameCounter = 0;
-                if (null != tvFps) {
-                    final String text = String.format(
-                            "FPS = %.2f ([%.2f, %.2f]ms)",
-                            fps,
-                            frameTime.current / 1e6f,
-                            frameTime.low / 1e6f
-                    );
-                    mainActivity.runOnUiThread(() -> tvFps.setText(text));
-                }
-            }
-        }
-        ++frameCounter;
-    }
-
-    private void UpdateClassifierResult(AlgorithmConfig algorithmConfig) {
-        final String text = String.format("Classifier output = " + algorithmConfig.getClassifierOutput());
-        mainActivity.runOnUiThread(()->classifierResult.setText(text));
-    }
-
-    private void DefaultClassifierField() {
-        final String text = String.format("");
-        mainActivity.runOnUiThread(()->classifierResult.setText(text));
-    }
-
-    MainRenderer(Context context)
-    {
-        mainActivity = (MainActivity)context;
-        am = context.getAssets();
-    }
-
-    public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-        Log.d(TAG, "renderer surface created");
-        tvFps = mainActivity.findViewById(R.id.textViewFPS);
-        classifierResult = mainActivity.findViewById(R.id.classifierOutput);
-        NativeLibrary.init(am, mainActivity.getFilesDir().getAbsolutePath(), mainActivity.getExternalFilesDir(null).getAbsolutePath());
-
-        mainActivity.runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() {
-                mainActivity.initCamera();
-            }
-        });
-    }
-
-    public void onDrawFrame(GL10 unused) {
-        UpdateFps();
-        AlgorithmConfig algorithmConfig = null;
-        if (mainActivity.mMenuCore != null)
-            algorithmConfig = mainActivity.mMenuCore.getState();
-        else algorithmConfig = new AlgorithmConfig();
-
-        NativeLibrary.draw(algorithmConfig);
-
-        if (algorithmConfig.isClassifierResnet18() || algorithmConfig.isClassifierMobilenetv2()) {
-            UpdateClassifierResult(algorithmConfig);
-        }
-    }
-
-    public void onSurfaceChanged(GL10 unused, int w, int h) {
-        Log.d(TAG, String.format("renderer surface size changed: width=%d height=%d", w, h));
-        NativeLibrary.resize(w, h);
-    }
-}
-
-class NativeLibrary
-{
-    static {
-        // Load native library
-        System.loadLibrary("native-lib");
-    }
-    public static native void init(AssetManager am, String internalStoragePath, String externalStorageDir);
-    public static native void initDSP(String skelLocation);
-    public static native void resize(int w, int h);
-
-    public static native void draw(AlgorithmConfig algorithmConfig);
-
-    public static native void destroy();
-    public static native void queueFrame(int w, int h, int rotationDegrees, long timestamp, ByteBuffer yPlane, ByteBuffer uPlane, ByteBuffer vPlane);
-    public static native void queueMetaData(long timestamp, boolean lowExposure);
-    public static native void startRecording(Surface surface);
-    public static native void stopRecording();
-    public static native void updateSavePath(String savePath);
-    public static native void renameRecording(String newName);
-    public static native int compareFrameExposure(int w, int h, ByteBuffer frame0, ByteBuffer frame1); // return -1, 0 or 1
-
 }

@@ -11,6 +11,20 @@ This file is licensed under the Creative Commons Attribution 2.0 Generic license
 
         attribution – You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 
+# [ant_y_channel.png]
+
+This file is Y channel of `ant.png` stored as RGBA image.
+
+This file is licensed under the Creative Commons Attribution 2.0 Generic license.
+
+    You are free:
+
+        to share – to copy, distribute and transmit the work
+        to remix – to adapt the work
+
+    Under the following conditions:
+
+        attribution – You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 
 # [arduino.png](https://commons.wikimedia.org/wiki/File:Another_picture_of_the_arduino_attatched.jpg)
 
@@ -86,7 +100,7 @@ This file is licensed under the Creative Commons Attribution 2.0 Generic license
         attribution – You must give appropriate credit, provide a link to the license, and indicate if changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
 
 
-# [cifar_test.png](https://www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf)
+# [cifar_test.png, cifar_test_dog.png](https://www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf)
 
 
 	The MIT License (MIT)

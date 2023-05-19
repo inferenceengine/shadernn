@@ -1,0 +1,71 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = WG_X, local_size_y = WG_Y, local_size_z = WG_Z) in;
+
+layout(set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D uOutput;
+layout(set=0, binding=1) uniform PRECISION sampler3D uInput;
+
+layout(constant_id = 0) const int uSubPixelFactor = 1;
+layout(constant_id = 1) const int uInputSizex = 1;
+layout(constant_id = 2) const int uInputSizey = 1;
+layout(constant_id = 3) const int uInputSizez = 1;
+layout(constant_id = 4) const int uOutputSizex = 1;
+layout(constant_id = 5) const int uOutputSizey = 1;
+layout(constant_id = 6) const int uOutputSizez = 1;
+
+void main()
+{
+    ivec3 pos = ivec3(gl_GlobalInvocationID);
+
+    if(pos.x < uOutputSizex && pos.y < uOutputSizey && pos.z == 0)
+    {
+        float srcX = float(pos.x) / float(uSubPixelFactor);
+        int x1 = int(floor(srcX));
+        int x11 = clamp(x1, 0, uInputSizex - 1);
+        
+        float srcY = float(pos.y) / float(uSubPixelFactor);
+        int y1 = int(floor(srcY));
+        int y11 = clamp(y1, 0, uInputSizey - 1);
+
+        int z1 = (pos.x % uSubPixelFactor) + ((pos.y % uSubPixelFactor) * uSubPixelFactor);
+        int z11 = clamp(z1, 0, uInputSizez - 1);
+
+        vec4 outValue = texelFetch(uInput, ivec3(x11, y11, z11), 0);
+        vec4 res = vec4(0.f);
+        res.x = outValue.x;
+
+        // Activation
+        // Todo: Pass a parameter in json model to distinguish activations
+        res.x = tanh(res.x);
+
+        imageStore(uOutput, pos, res);
+    }
+}
+

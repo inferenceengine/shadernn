@@ -14,18 +14,10 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "snn/utils.h"
+#include "modelparser.h"
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -34,19 +26,20 @@ struct InputLayerDesc : CommonLayerDesc {
     uint32_t inputHeight, inputWidth, inputChannels;
     void parse(ModelParser& parser, int layerId) {
         CommonLayerDesc::parse(parser, layerId);
-        parser.getInputLayer(layerId, inputWidth, inputHeight, inputChannels);
+        parser.getInputLayer(layerId, inputWidth, inputHeight, inputChannels, inputIndex);
+        isInputLayer = true;
     }
 };
 
+// This is a class that represents input layer. It does not generate any shader.
 class InputLayerLayer : public ShaderLayer {
 public:
     InputLayerLayer(InputLayerDesc desc): ShaderLayer(desc) {}
-    ~InputLayerLayer() {}
-    virtual void getInputDims(uint32_t& height, uint32_t& width, uint32_t& depth) const override {
-        height = this->desc.inputHeight;
-        width  = this->desc.inputWidth;
-        depth  = this->desc.inputChannels;
-    }
+    virtual ~InputLayerLayer() = default;
+
+protected:
+    virtual InferencePassesSptr createFS(const LayerGenOptions&) const override { SNN_RIP("Not implemented !"); }
+    virtual InferencePassesSptr createCS(const LayerGenOptions&) const override { SNN_RIP("Not implemented !"); }
 
 private:
     InputLayerDesc desc;

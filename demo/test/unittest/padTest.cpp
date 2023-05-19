@@ -32,15 +32,16 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
-static int test_pad(int w, int h, int c, int outch, int type, int kernel, float value) {
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    rc.makeCurrent();
-    ShaderUnitTest test;
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
+
+static int test_pad(int w, int h, int c, int outch, int type, int kernel, float value, snn::GpuBackendType backend, bool printMismatch) {
+    ShaderUnitTest test(backend);
 
     ncnn::Mat padA = RandomMat(w, h, c);
-    // ncnn::Mat padA = SetValueMat(w, h, c, 1.0f);
-    pretty_print_ncnn(padA);
-
     ncnn::Mat ncnnMat;
 
     ncnn::ParamDict pd;
@@ -61,26 +62,34 @@ static int test_pad(int w, int h, int c, int outch, int type, int kernel, float 
     auto inputMat = NCNNMat2CVMat(padA);
 
     auto outFile = test.snnPadTestWithLayer(inputMat, w, h, c, kernel, 1, type, value);
-
     printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, outch);
-    // pretty_print_ncnn(snnOutput);
 
     ret = CompareMat(ncnnMat, snnOutput, 0.1);
-    pretty_print_ncnn(ncnnMat);
-    pretty_print_ncnn(snnOutput);
+    printf("pad test test res: %d for w=%d, h=%d, c=%d, outch=%d, type=%d, value=%f\n", ret, w, h, c, outch, type, value);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(ncnnMat);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
-    printf("test_upsample test res: %d for w=%d, h=%d, c=%d, outch=%d, type=%d, value=%f\n", ret, w, h, c, outch, type, value);
-
-    return 0;
+    return ret;
 }
 
-int main() {
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    // test_pad(8, 8, 1, 1, 0/*padding type*/, 4/*kernel*/, 0.0f);
-    // test_pad(8, 8, 1, 1, 1/*padding type*/, 4/*kernel*/, 0.0f);
-    test_pad(8, 8, 1, 1, 2 /*padding type*/, 4 /*kernel*/, 0.0f);
+    bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    test_pad(8, 8, 4, 4, 2/*padding type*/, 4 /*kernel*/, 0.0f, backend, printMismatch);
 
     return 0;
 }

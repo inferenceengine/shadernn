@@ -14,72 +14,31 @@
  */
 #include "pch.h"
 #include "spatialDenoiser.h"
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/mat.hpp>
-#include "ic2/dp.h"
+#include "appContext.h"
+#ifdef SUPPORT_GL
+    #include "spatialDenoiserGL.h"
+#endif
+#ifdef SUPPORT_VULKAN
+    #include "volk.h"
+    #include "vulkanContext.h"
+    #include "spatialDenoiserVulkan.h"
+#endif
 
-using namespace std;
 using namespace snn;
 
-// -----------------------------------------------------------------------------
-// the following is spatialDenoiser
-// -----------------------------------------------------------------------------
-
-void spatialDenoiser::submit(Workload& workload) {
-    if (workload.inputCount == 0) {
-        return;
+std::unique_ptr<SpatialDenoiser>
+SpatialDenoiser::createPreDenoiser(ColorFormat format, Precision precision, bool compute, bool dumpOutputs) {
+    (void) compute;
+    switch (AppContext::getContext()->backendType) {
+#ifdef SUPPORT_GL
+        case GpuBackendType::GL:
+            return std::unique_ptr<SpatialDenoiser>(new SpatialDenoiserGL(format, precision, compute, dumpOutputs));
+#endif
+#ifdef SUPPORT_VULKAN
+        case GpuBackendType::VULKAN:
+            return std::unique_ptr<SpatialDenoiser>(new SpatialDenoiserVulkan(format, precision, dumpOutputs));
+#endif
+        default:
+            SNN_RIP("Unexpected GpuBackendType");
     }
-
-    const auto& inputDesc = workload.inputs[0]->desc();
-    const auto& outDesc   = workload.output->desc();
-
-    // we have to delay creating ic2 because we need to know the frame size.
-    if (!_ic2) {
-        dp::ShaderGenOptions options = {};
-        options.desiredInput.width   = inputDesc.width;
-        options.desiredInput.height  = inputDesc.height;
-        options.desiredInput.depth   = 1;
-        options.desiredInput.format  = inputDesc.format;
-        options.desiredOutputFormat  = outDesc.format;
-        options.preferrHalfPrecision = true;
-        options.compute              = _compute;
-        options.mrtMode              = snn::MRTMode::SINGLE_PLANE;
-        options.weightMode           = snn::WeightAccessMethod::CONSTANTS;
-        auto dp                      = snn::dp::loadFromJsonModel(_modelFileName, options.mrtMode, options.weightMode, true);
-        MixedInferenceCore::CreationParameters cp;
-        (InferenceGraph &&) cp = snn::dp::generateInferenceGraph(dp[0], options);
-        cp.dumpOutputs         = this->_dumpOutputs;
-        _ic2                   = MixedInferenceCore::create(cp);
-    }
-
-    SNN_ASSERT(inputDesc.device == Device::GPU);
-    SNN_ASSERT(outDesc.device == Device::GPU);
-
-    // const auto& fmtDesc = getColorFormatDesc(outDesc.format);
-
-    // const auto& inFmtDesc = getColorFormatDesc(inputDesc.format);
-
-    // std::cout << "Spatial Denoise Input Color Format: " << inFmtDesc.name << std::endl;
-    // std::cout << "Spatial Denoise Output Color Format: " << fmtDesc.name << std::endl;
-
-    auto inputTexture  = ((GpuFrameImage*) workload.inputs[0])->getGpuData();
-    auto outputTexture = ((GpuFrameImage*) workload.output)->getGpuData();
-
-    auto& currentFrameTexture = _frameTextures[inputTexture.texture];
-    if (!currentFrameTexture) {
-        // Create a thin shell around textureId
-        currentFrameTexture = Texture::createAttached(inputTexture.target, inputTexture.texture);
-    }
-
-    auto outVec = std::vector<std::vector<std::vector<float>>>();
-    auto inVec  = std::vector<std::vector<std::vector<float>>>();
-
-    MixedInferenceCore::RunParameters rp = {};
-    auto inputTextures                   = getFrameTexture(inputTexture.texture);
-    rp.inputTextures                     = &inputTextures;
-    rp.inputCount                        = 1;
-    rp.textureOut                        = getFrameTexture(outputTexture.texture);
-    rp.inputMatrix                       = inVec;
-    rp.output                            = outVec;
-    _ic2->run(rp);
 }

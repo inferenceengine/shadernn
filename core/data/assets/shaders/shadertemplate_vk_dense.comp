@@ -1,0 +1,106 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D uOutput;
+layout(set=0, binding=1) uniform PRECISION sampler3D uInput;
+
+layout(set=0, binding=2) uniform constBuffer {
+    ivec2 inputSize;
+    int activationType;
+    float leakyValue;
+} uConstant;
+
+layout(set=0, binding=3) readonly buffer weight{
+    float data[];
+} uWightBuffer;
+
+layout(set=0, binding=4) readonly buffer bias{
+    float data[];
+} uBiasBuffer;
+
+float relu(float i);
+float sigmoid(float i);
+float activeValue(int type, float v);
+
+void main()
+{
+    ivec3 pos = ivec3(gl_GlobalInvocationID);
+    int uWidth = uConstant.inputSize.x;
+    int uHeight = uConstant.inputSize.y;
+    int activation = uConstant.activationType;
+    float res = 0.0f;
+    for (int w = 0; w < uWidth; w+=4) 
+    {
+        vec4 color;
+        vec4 weight;        
+        int z = pos.z*4;
+        vec4 color0 = texelFetch(uInput, ivec3(w, 0, 0), 0);
+        vec4 color1 = texelFetch(uInput, ivec3(w+1, 0, 0), 0);
+        vec4 color2 = texelFetch(uInput, ivec3(w+2, 0, 0), 0);
+        vec4 color3 = texelFetch(uInput, ivec3(w+3, 0, 0), 0);
+        weight.r = uWightBuffer.data[pos.y*uWidth+w];
+        weight.g = uWightBuffer.data[pos.y*uWidth+w+1];
+        weight.b = uWightBuffer.data[pos.y*uWidth+w+2];
+        weight.a = uWightBuffer.data[pos.y*uWidth+w+3];    
+        
+        res += dot(vec4(color0.r, color1.r, color2.r, color3.r), weight);     
+    }
+    res += uBiasBuffer.data[pos.y];
+    res = activeValue(activation, res);
+    float test = float(uWidth);
+    imageStore(uOutput,ivec3(pos.y, 0, 0),vec4(res,0,0,0));
+}
+
+float relu(float i){
+   if (i > 0.0){
+       return i;
+   } else {
+       return 0.0;
+   }
+}
+
+float sigmoid(float i){
+    return 1.0 / (1.0 + exp(-i));
+}
+
+float activeValue(int type, float v){
+    if (type == 0) {
+        return (v);
+    } else if (type == 1) {
+        return relu(v);
+    } else if (type == 2) {
+        return sigmoid(v);
+    } else if (type == 3){
+        return tanh(v);
+    } else {
+        return v;
+    }
+}

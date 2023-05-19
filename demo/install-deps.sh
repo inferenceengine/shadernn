@@ -17,8 +17,8 @@ ROOT=`dirname "$(realpath $0)"`
 
 NCNN_RELEASE_ANDROID="ncnn-20211208-android"
 NCNN_RELEASE_ANDROID_URL="https://github.com/Tencent/ncnn/releases/download/20211208/ncnn-20211208-android.zip"
-NCNN_RELEASE_UBUNTU="ncnn-20211208-ubuntu-1804"
-NCNN_RELEASE_UBUNTU_URL="https://github.com/Tencent/ncnn/releases/download/20211208/ncnn-20211208-ubuntu-1804.zip"
+NCNN_RELEASE_UBUNTU=${NCNN_RELEASE_UBUNTU:="ncnn-20211208-ubuntu-1804"}
+NCNN_RELEASE_UBUNTU_URL="https://github.com/Tencent/ncnn/releases/download/20211208/${NCNN_RELEASE_UBUNTU}.zip"
 NCNN_SRC="ncnn-20211208"
 NCNN_SRC_URL="https://github.com/Tencent/ncnn/archive/refs/tags/20211208.zip"
 OPENCV_RELEASE_ANDROID="OpenCV-android-sdk"
@@ -34,10 +34,10 @@ make_dir()
 
 clean()
 {
-    rm -rf "${ROOT}/test/${NCNN_RELEASE_ANDROID}"
-    rm -rf "${ROOT}/test/${NCNN_RELEASE_UBUNTU}"    
-    rm -rf "${ROOT}/test/${NCNN_SRC}"    
-    rm -rf "${ROOT}/test/${OPENCV_RELEASE_ANDROID}"        
+    rm -rf "${ROOT}/${NCNN_RELEASE_ANDROID}"
+    rm -rf "${ROOT}/${NCNN_RELEASE_UBUNTU}"    
+    rm -rf "${ROOT}/${NCNN_SRC}"    
+    rm -rf "${ROOT}/${OPENCV_RELEASE_ANDROID}"        
 }
 
 print_usage()
@@ -55,41 +55,42 @@ print_usage()
 
 build_android()
 {
-    if [ ! -d "${ROOT}/test/${NCNN_SRC}" ]; then
+    if [ ! -d "${ROOT}/${NCNN_SRC}" ]; then
         echo "NCNN Source Codes Not Found"
-        wget "${NCNN_SRC_URL}" -O "${ROOT}/test/ncnn_src.zip"
-        unzip "${ROOT}/test/ncnn_src.zip" -d "${ROOT}/test"
-        rm "${ROOT}/test/ncnn_src.zip"
+        wget "${NCNN_SRC_URL}" -O "${ROOT}/ncnn_src.zip"
+        unzip "${ROOT}/ncnn_src.zip" -d "${ROOT}"
+        rm "${ROOT}/ncnn_src.zip"
     fi        
-    if [ ! -d "${ROOT}/test/${NCNN_RELEASE_ANDROID}" ]; then
+    if [ ! -d "${ROOT}/${NCNN_RELEASE_ANDROID}" ]; then
         echo "NCNN Android Release Not Found"
-        wget "${NCNN_RELEASE_ANDROID_URL}" -O "${ROOT}/test/ncnn_android_release.zip"
-        unzip "${ROOT}/test/ncnn_android_release.zip" -d "${ROOT}/test"
-        rm "${ROOT}/test/ncnn_android_release.zip"
-        sed -i 's/INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/#INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/' "${ROOT}/test/${NCNN_RELEASE_ANDROID}/arm64-v8a/lib/cmake/ncnn/ncnn.cmake"
-        sed -i 's/INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/#INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/' "${ROOT}/test/${NCNN_RELEASE_ANDROID}/armeabi-v7a/lib/cmake/ncnn/ncnn.cmake"    
+        wget "${NCNN_RELEASE_ANDROID_URL}" -O "${ROOT}/ncnn_android_release.zip"
+        unzip "${ROOT}/ncnn_android_release.zip" -d "${ROOT}"
+        rm "${ROOT}/ncnn_android_release.zip"
+        sed -i 's/INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/#INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/' "${ROOT}/${NCNN_RELEASE_ANDROID}/arm64-v8a/lib/cmake/ncnn/ncnn.cmake"
+        sed -i 's/INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/#INTERFACE_COMPILE_OPTIONS "-fno-rtti;-fno-exceptions"/' "${ROOT}/${NCNN_RELEASE_ANDROID}/armeabi-v7a/lib/cmake/ncnn/ncnn.cmake"    
     fi
-    if [ ! -d "${ROOT}/test/${OPENCV_RELEASE_ANDROID}" ]; then
+    if [ ! -d "${ROOT}/${OPENCV_RELEASE_ANDROID}" ]; then
         echo "OpenCV Android Release Not Found"
-        wget "${OPENCV_RELEASE_ANDROID_URL}" -O "${ROOT}/test/opencv_android_release.zip"
-        unzip "${ROOT}/test/opencv_android_release.zip" -d "${ROOT}/test"
-        rm "${ROOT}/test/opencv_android_release.zip"        
+        wget "${OPENCV_RELEASE_ANDROID_URL}" -O "${ROOT}/opencv_android_release.zip"
+        unzip "${ROOT}/opencv_android_release.zip" -d "${ROOT}"
+        rm "${ROOT}/opencv_android_release.zip"        
     fi
 }
 
 build_linux()
 {
-    if [ ! -d "${ROOT}/test/${NCNN_SRC}" ]; then
+    echo "Using NCNN release = ${NCNN_RELEASE_UBUNTU}"
+    if [ ! -d "${ROOT}/${NCNN_SRC}" ]; then
         echo "NCNN Source Codes Not Found"
-        wget "${NCNN_SRC_URL}" -O "${ROOT}/test/ncnn_src.zip"
-        unzip "${ROOT}/test/ncnn_src.zip" -d "${ROOT}/test"
-        rm "${ROOT}/test/ncnn_src.zip"
+        wget "${NCNN_SRC_URL}" -O "${ROOT}/ncnn_src.zip"
+        unzip "${ROOT}/ncnn_src.zip" -d "${ROOT}"
+        rm "${ROOT}/ncnn_src.zip"
     fi   
-    if [ ! -d "${ROOT}/test/${NCNN_RELEASE_UBUNTU}" ]; then
+    if [ ! -d "${ROOT}/${NCNN_RELEASE_UBUNTU}" ]; then
         echo "NCNN Ubuntu Release Not Found"
-        wget "${NCNN_RELEASE_UBUNTU_URL}" -O "${ROOT}/test/ncnn_ubuntu_release.zip"
-        unzip "${ROOT}/test/ncnn_ubuntu_release.zip" -d "${ROOT}/test"
-        rm "${ROOT}/test/ncnn_ubuntu_release.zip"
+        wget "${NCNN_RELEASE_UBUNTU_URL}" -O "${ROOT}/ncnn_ubuntu_release.zip"
+        unzip "${ROOT}/ncnn_ubuntu_release.zip" -d "${ROOT}"
+        rm "${ROOT}/ncnn_ubuntu_release.zip"
     fi 
 }
 

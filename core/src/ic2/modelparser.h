@@ -14,28 +14,34 @@
  */
 #pragma once
 
-#include <opencv2/core/mat.hpp>
-#include <picojson.h>
 #include <snn/snn.h>
+#include <picojson.h>
+#include <opencv2/core/mat.hpp>
+#include <string>
+#include <fstream>
+#include <map>
+#include <vector>
 
 namespace snn {
 namespace dp {
 
+// This classes can parse a model description, stored in JSON file
+// and retrieve its properties
 class ModelParser {
 private:
     picojson::value _modelOb;
     bool preferHp; // For half precision (16-bit floats)
     bool isBinWeight = false;
     std::ifstream binFile; // For reading weight from separate file
-    snn::MRTMode mrtMode;
-    snn::WeightAccessMethod weightMode;
+    MRTMode mrtMode;
+    WeightAccessMethod weightMode;
 
 public:
     struct CreationParameters {
         const std::string filename;
         bool preferHp;
-        snn::MRTMode mrtMode;
-        snn::WeightAccessMethod weightMode;
+        MRTMode mrtMode;
+        WeightAccessMethod weightMode;
     };
 
     bool isInputRange01();
@@ -58,10 +64,6 @@ public:
 
     bool getPrecision();
 
-    // TODO: Separate this from modelParser init
-    //       Preferably separate layer construction and layer init.
-    //       Pass these options via generateInferenceGraph
-    //       to the layer init functions
     snn::MRTMode getMRTMode();
 
     snn::WeightAccessMethod getWeightMode();
@@ -114,7 +116,7 @@ public:
 
     int getAdaptiveAvgPoolLayer(int& layerID, int& numOutputPlanes, int& numInputPlanes, int& poolSize);
 
-    int getInputLayer(int& layerId, uint32_t& inputWidth, uint32_t& inputHeight, uint32_t& inputChannels);
+    int getInputLayer(int& layerId, uint32_t& inputWidth, uint32_t& inputHeight, uint32_t& inputChannels, uint32_t& inputIndex);
 
     int getDenseLayer(int& layerID, int& numOutputUnits, int& numInputUnits, std::string& activation, std::vector<std::vector<float>>& weights,
                       std::vector<float>& biases, float& leakyReluAlpha);

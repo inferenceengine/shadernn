@@ -14,53 +14,35 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
 struct PadDesc : GenericConvDesc {
     float constant            = 0.0f;
-    bool preferrHalfPrecision = false;
     std::string paddingT, paddingB, paddingL, paddingR;
     std::string mode = "constant";
     void parse(ModelParser& parser, int layerId) {
-        // std::cout << "Before parsing Pad "<<std::endl;
         GenericConvDesc::parse(parser, layerId);
         parser.getPaddingLayer(layerId, (int&) numOutputPlanes, (int&) numInputPlanes, (std::string&) paddingT, (std::string&) paddingB,
                                (std::string&) paddingL, (std::string&) paddingR, (std::string&) mode, (float&) constant);
     }
 };
 
+// This is a base class to generates a shader for padding
 class PadLayer : public GenericConvolutionLayer {
 public:
     PadLayer(PadDesc&& d): GenericConvolutionLayer(d), _desc(std::move(d)) {}
-    ~PadLayer() {}
+    virtual ~PadLayer() = default;
     virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
 
 protected:
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
     PadDesc _desc;
-
-    // Adds predefine to given stringstream.
-    // shaderFilePath is the path of the file template this will be appended to
-    // and is used to label the preDefine.
-
-    void buildPreDefine(std::ostringstream& stream, const LayerGenOptions& options, const std::string& shaderFilePath) const;
 
     void getPaddingOffset(uint32_t (&offsets)[4]) const;
 };

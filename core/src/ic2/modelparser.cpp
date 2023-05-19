@@ -15,10 +15,17 @@
 #include "pch.h"
 #include <snn/utils.h>
 #include "modelparser.h"
+#include <string>
+#include <vector>
+#include <map>
 #include <fstream>
 #include <iostream>
+#include <exception>
+#include <utility>
+#ifndef __ANDROID__
+#include <experimental/filesystem>
+#endif
 
-using namespace std;
 using namespace snn::dp;
 
 bool ModelParser::isInputRange01() {
@@ -36,14 +43,14 @@ int ModelParser::getLayerCount() {
     return layerCount;
 }
 
-string ModelParser::getActivation(int layerId) {
+std::string ModelParser::getActivation(int layerId) {
     SNN_LOGV("ModelParser:: Get activation of the layer");
     if (getLayerName(layerId).compare("Convolution") == 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
-        string activation          = layerObj["activation"].get<string>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
+        std::string activation          = layerObj["activation"].get<std::string>();
         return activation;
     } else if (getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        string activation = "";
+        std::string activation = "";
         return activation;
     } else {
         SNN_LOGW("ModelParser:: accessing activation in a non convolution layer");
@@ -52,9 +59,8 @@ string ModelParser::getActivation(int layerId) {
 }
 
 int ModelParser::getInputPlanes(int layerId) {
-    // SNN_LOGV("ModelParser:: Get number of input planes of the layer");
     if (getNumInbound(layerId) != 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         int inputPlanes            = static_cast<int>(layerObj["inputPlanes"].get<double_t>());
         return inputPlanes;
     } else {
@@ -64,22 +70,25 @@ int ModelParser::getInputPlanes(int layerId) {
 
 int ModelParser::getOutputPlanes(int layerId) {
     SNN_LOGV("ModelParser:: Get number of output planes of the layer");
-    picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+    picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
     int inputPlanes            = static_cast<int>(layerObj["outputPlanes"].get<double_t>());
     return inputPlanes;
 }
 
-string ModelParser::getLayerName(int layerId) {
+std::string ModelParser::getLayerName(int layerId) {
     SNN_LOGV("ModelParser:: Get layer name");
-    picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
-    string class_name          = layerObj["type"].get<string>();
+    picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
+    std::string class_name          = layerObj["type"].get<std::string>();
+    if (class_name.compare("Lambda") == 0) {
+        class_name = layerObj["name"].get<std::string>();
+    }
     return class_name;
 }
 
 picojson::array ModelParser::getWeights(int layerId) {
     SNN_LOGV("ModelParser:: Get weight picojson array");
     if (getLayerName(layerId).compare("Convolution") == 0) {
-        picojson::object& layerObj  = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj  = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         picojson::object& weightObj = layerObj["weights"].get<picojson::object>();
         picojson::array weightArray = weightObj["kernel"].get<picojson::array>();
         return weightArray;
@@ -92,7 +101,7 @@ picojson::array ModelParser::getWeights(int layerId) {
 picojson::array ModelParser::getDepthWiseWeights(int layerId) {
     SNN_LOGV("ModelParser:: Get weights for depthwise layer");
     if (getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        picojson::object& layerObj  = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj  = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         picojson::array weightArray = layerObj["depthwise_weights"].get<picojson::array>();
         return weightArray;
     } else {
@@ -104,7 +113,7 @@ picojson::array ModelParser::getDepthWiseWeights(int layerId) {
 picojson::array ModelParser::getBias(int layerId) {
     SNN_LOGV("ModelParser:: Get bias picojson array");
     if (getLayerName(layerId).compare("Convolution") == 0 || getLayerName(layerId).compare("SeparableConv2D")) {
-        picojson::object& layerObj  = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj  = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         picojson::object& weightObj = layerObj["weights"].get<picojson::object>();
         picojson::array biasArray   = weightObj["bias"].get<picojson::array>();
         return biasArray;
@@ -116,16 +125,15 @@ picojson::array ModelParser::getBias(int layerId) {
 
 int ModelParser::getNumInbound(int layerId) {
     SNN_LOGV("ModelParser:: Get number of inbounds");
-    picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
-    // picojson::object& numInNode =  layerObj["numInputs"].get<picojson::object>();
+    picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
     int numIn = static_cast<int>(layerObj["numInputs"].get<double>());
     return numIn;
 }
 
-vector<int> ModelParser::getInboundLayerId(int layerId) {
+std::vector<int> ModelParser::getInboundLayerId(int layerId) {
     int numIn                  = getNumInbound(layerId);
-    picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
-    vector<int> inboundLayers;
+    picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
+    std::vector<int> inboundLayers;
     picojson::array inputNodes = layerObj["inputId"].get<picojson::array>();
     for (int i = 0; i < numIn; i++) {
         int id = static_cast<int>(inputNodes[i].get<double>());
@@ -136,7 +144,7 @@ vector<int> ModelParser::getInboundLayerId(int layerId) {
 
 int ModelParser::getInlayerId(int layerId, int inboundNum) {
     SNN_LOGV("ModelParser:: Get inbound layer id");
-    picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+    picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
     picojson::array inputNodes = layerObj["inputId"].get<picojson::array>();
     int layer                  = static_cast<int>(inputNodes[inboundNum].get<double>());
     return layer;
@@ -145,7 +153,7 @@ int ModelParser::getInlayerId(int layerId, int inboundNum) {
 int ModelParser::getKernelSize(int layerId) {
     SNN_LOGV("ModelParser:: getKernelSize");
     if (getLayerName(layerId).compare("Convolution") == 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         int kernelSize             = static_cast<int>(layerObj["kernel_size"].get<double_t>());
         return kernelSize;
     } else {
@@ -157,7 +165,7 @@ int ModelParser::getKernelSize(int layerId) {
 int ModelParser::getDepthwiseKernelSize(int layerId) {
     SNN_LOGV("ModelParser:: getKernelSize");
     if (getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         int kernelSize             = static_cast<int>(layerObj["Depthwise_Kernel"].get<double_t>());
         return kernelSize;
     } else {
@@ -169,7 +177,7 @@ int ModelParser::getDepthwiseKernelSize(int layerId) {
 int ModelParser::getDepthwiseMultiplier(int layerId) {
     SNN_LOGV("ModelParser:: getDepthwiseMultiplier");
     if (getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         int depthwiseMultiplier    = static_cast<int>(layerObj["depth_multiplier"].get<double_t>());
         return depthwiseMultiplier;
     } else {
@@ -178,10 +186,9 @@ int ModelParser::getDepthwiseMultiplier(int layerId) {
     }
 }
 
-string ModelParser::getUseBias(int layerId) {
+std::string ModelParser::getUseBias(int layerId) {
     SNN_LOGV("ModelParser:: getUseBias");
     if (getLayerName(layerId).compare("Convolution") == 0 || getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        // picojson::object& layerObj =  _modelOb.get("block_"+to_string(layerId)).get<picojson::object>();
         return "True";
     } else {
         SNN_LOGW("ModelParser:: accessing bias in a non convolution layer");
@@ -189,11 +196,11 @@ string ModelParser::getUseBias(int layerId) {
     }
 }
 
-string ModelParser::getPadding(int layerId) {
+std::string ModelParser::getPadding(int layerId) {
     SNN_LOGV("ModelParser:: getPaddingInfo");
     if (getLayerName(layerId).compare("Convolution") == 0 || getLayerName(layerId).compare("SeparableConv2D") == 0) {
-        picojson::object& layerObj = _modelOb.get("Layer_" + to_string(layerId)).get<picojson::object>();
-        return layerObj["padding"].get<string>();
+        picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
+        return layerObj["padding"].get<std::string>();
     } else {
         SNN_LOGW("ModelParser:: accessing padding in a non convolution layer");
         return "";
@@ -201,35 +208,52 @@ string ModelParser::getPadding(int layerId) {
 }
 
 ModelParser::ModelParser(const CreationParameters cp) {
-    std::string name = cp.filename;
+    const std::string& name = cp.filename;
     this->preferHp   = cp.preferHp;
     this->mrtMode    = cp.mrtMode;
     this->weightMode = cp.weightMode;
 
 #ifdef __ANDROID__
-    auto jsonBytes = snn::loadJsonFromStorage(("jsonModel/" + name).c_str());
+    auto jsonBytes = snn::loadJsonFromStorage(name.c_str());
 #else
-    auto jsonBytes = snn::loadEmbeddedAsset(("jsonModel/" + name).c_str());
+    auto jsonBytes = snn::loadEmbeddedAsset(name.c_str());
     if (jsonBytes.empty()) {
         jsonBytes = snn::loadJsonFromStorage((name).c_str());
     }
 #endif
+    if (jsonBytes.empty()) {
+        SNN_RIP("ModelParser:: Could not load JSON file %s", name.c_str());
+    }
+    SNN_LOGV("start parse model");
     std::string err = picojson::parse(_modelOb, std::string(jsonBytes.begin(), jsonBytes.end()));
     if (!err.empty()) {
-        SNN_LOGV("ModelParser:: Could not parse JSON file %s", name.c_str());
+        SNN_RIP("ModelParser:: Could not parse JSON file %s", name.c_str());
     }
+    SNN_LOGV("end parse model");
 
-    string fileName;
+    std::string fileName;
     picojson::object& numNode = _modelOb.get("numLayers").get<picojson::object>();
     if (numNode.count("bin_file_name") > 0) {
-        fileName    = numNode["bin_file_name"].get<string>();
+        fileName    = numNode["bin_file_name"].get<std::string>();
         isBinWeight = true;
+
 #ifdef __ANDROID__
-        std::string path("/sdcard/Android/data/com.innopeaktech.seattle.snndemo/files/");
+        size_t pos = name.find("/");
+        std::string subPath = name.substr(0, pos);
+        std::string path = std::string(MODEL_DIR) + "/" + subPath + "/";
 #else
-        std::string path("../data/assets/");
+        std::string path = std::experimental::filesystem::current_path();
+        size_t pos = name.find("/");
+        std::string subPath = name.substr(0, pos);
+        path += ("/" + std::string(MODEL_DIR) + "/" + subPath + "/");
 #endif
-        binFile.open((path + "jsonModel/" + fileName).c_str(), std::ios::binary);
+        SNN_LOGD("bin file %s", (path + fileName).c_str());
+        binFile.exceptions(std::ofstream::failbit); // may throw
+        try {
+            binFile.open((path + fileName).c_str(), std::ios::binary);
+        } catch (const std::ios_base::failure& fail) {
+            SNN_RIP("open %s: %s", (path + fileName).c_str(), fail.what());
+        }
     }
 }
 
@@ -264,13 +288,11 @@ bool ModelParser::useSubPixel() {
 }
 
 bool ModelParser::normalize() {
-    // picojson::object& numNode =  _modelOb.get("node").get<picojson::object>();
     bool normalize = false;
     return normalize;
 }
 
 bool ModelParser::mergeY2GB() {
-    // picojson::object& numNode =  _modelOb.get("node").get<picojson::object>();
     bool mergeY2GB = false;
     return mergeY2GB;
 }
@@ -308,7 +330,7 @@ int ModelParser::getMaxPoolLayer(int& layerID, int& numOutputPlanes, int& numInp
                 }
             } catch (std::exception& e) { stride = poolSize; }
         }
-        SNN_LOGD("%s:%d stride: %d\n", __FUNCTION__, __LINE__, stride);
+        SNN_LOGD("%s:%d stride: %d\n", __FILENAME__, __LINE__, stride);
         try {
             auto paddingObj = layerObj["padding"].get<picojson::array>();
             try {
@@ -455,17 +477,21 @@ int ModelParser::getYOLOLayer(int& layerId, int& numOutputPlanes, int& numInputP
     return 0;
 }
 
-int ModelParser::getInputLayer(int& layerId, uint32_t& inputWidth, uint32_t& inputHeight, uint32_t& inputChannels) {
+int ModelParser::getInputLayer(int& layerId, uint32_t& inputWidth, uint32_t& inputHeight, uint32_t& inputChannels, uint32_t& inputIndex) {
     try {
         picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         inputWidth                 = static_cast<uint32_t>(layerObj["Input Width"].get<double_t>());
         inputHeight                = static_cast<uint32_t>(layerObj["Input Height"].get<double_t>());
         inputChannels              = static_cast<uint32_t>(layerObj["outputPlanes"].get<double_t>());
+        if (layerObj.count("inputIndex")) {
+            inputIndex = static_cast<uint32_t>(layerObj["inputIndex"].get<double_t>());
+        }
     } catch (std::exception& e) {
         SNN_LOGE("ModelParser::getInputLayer : Issues parsing layer %d, %s", layerId, e.what());
         inputWidth    = 0;
         inputHeight   = 0;
         inputChannels = 0;
+        inputIndex = 0;
     }
     return 0;
 }
@@ -516,7 +542,6 @@ int ModelParser::getDenseLayer(int& layerID, int& numOutputUnits, int& numInputU
                     binFile.read((char*) &value, sizeof(float));
                     biases.push_back(value);
                 }
-                // SNN_LOGD("Conv2D loaded bias last element %f", value);
             } else {
                 picojson::array biasArray = weightObj["bias"].get<picojson::array>();
                 for (int i = 0; i < numOutputUnits; i++) {
@@ -610,7 +635,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                     matProgress++;
                 }
             }
-            // SNN_LOGD("Conv2D loaded last element %f", value);
         } else {
             picojson::array weightArray = weightObj["kernel"].get<picojson::array>();
             int element_number          = 0;
@@ -619,14 +643,10 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                     cv::Mat writeMatrix = cv::Mat::zeros(kernelSize, kernelSize, CV_32FC1);
                     for (int writingRow = 0; writingRow < kernelSize; writingRow++) {
                         for (int writingCol = 0; writingCol < kernelSize; writingCol++) {
-                            // std::cout << "--------------- [DEBUG MEDIUMP CONV] ---------------" << std::endl;
                             float data = static_cast<float>(weightArray[element_number].get<double_t>());
-                            // std::cout << "\tBEFORE: " << data << std::endl;
                             if (this->preferHp) {
                                 data = snn::convertToMediumPrecision(data);
                             }
-                            // std::cout << "\tAFTER: " << data << std::endl;
-                            // std::cout << "----------------------------------------------------" << std::endl;
                             element_number++;
                             writeMatrix.at<float>(writingRow, writingCol) = data;
                         }
@@ -647,7 +667,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                         biases[i] = snn::convertToMediumPrecision(biases[i]);
                     }
                 }
-                // SNN_LOGD("Conv2D loaded Bias last element %f", value);
             } else {
                 picojson::array biasArray = weightObj["bias"].get<picojson::array>();
                 for (int i = 0; i < numOutputPlanes; i++) {
@@ -659,7 +678,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
             }
         } else {
             for (int i = 0; i < numOutputPlanes; i++) {
-                // biases.push_back(0.0);
                 biases[i] = 0.0f;
             }
         }
@@ -682,7 +700,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                         gammaBN[i] = snn::convertToMediumPrecision(value);
                     }
                 }
-                // SNN_LOGD("Conv2D loaded gammaBN last element %f", value);
                 betaBN = std::vector<float>(numOutputPlanes);
                 for (int i = 0; i < numOutputPlanes; i++) {
                     binFile.read((char*) &value, sizeof(float));
@@ -691,7 +708,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                         betaBN[i] = snn::convertToMediumPrecision(value);
                     }
                 }
-                // SNN_LOGD("Conv2D loaded betaBN last element %f", value);
                 meanBN = std::vector<float>(numOutputPlanes);
                 for (int i = 0; i < numOutputPlanes; i++) {
                     binFile.read((char*) &value, sizeof(float));
@@ -700,7 +716,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                         meanBN[i] = snn::convertToMediumPrecision(value);
                     }
                 }
-                // SNN_LOGD("Conv2D loaded meanBN last element %f", value);
                 varianceBN = std::vector<float>(numOutputPlanes);
                 for (int i = 0; i < numOutputPlanes; i++) {
                     binFile.read((char*) &value, sizeof(float));
@@ -709,7 +724,6 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
                         varianceBN[i] = snn::convertToMediumPrecision(value);
                     }
                 }
-                // SNN_LOGD("Conv2D loaded varianceBN last element %f", value);
             } else {
                 picojson::array betaArray  = batchNormObj["beta"].get<picojson::array>();
                 picojson::array gammaArray = batchNormObj["gamma"].get<picojson::array>();
@@ -748,18 +762,13 @@ int ModelParser::getConvolutionLayer(int& layerId, int& numOutputPlanes, int& nu
         }
 
         if (activation.compare("leakyRelu") == 0) {
-            if (this->preferHp) {
-                if (layerObj.count("leakyReluAlpha")) {
-                    leakyReluAlpha = static_cast<float>(layerObj["leakyReluAlpha"].get<double>());
-                } else {
-                    leakyReluAlpha = static_cast<float>(layerObj["alpha"].get<double>());
-                }
+            if (layerObj.count("leakyReluAlpha")) {
+                leakyReluAlpha = static_cast<float>(layerObj["leakyReluAlpha"].get<double>());
             } else {
-                if (layerObj.count("leakyReluAlpha")) {
-                    leakyReluAlpha = static_cast<float>(layerObj["leakyReluAlpha"].get<double>());
-                } else {
-                    leakyReluAlpha = static_cast<float>(layerObj["alpha"].get<double>());
-                }
+                leakyReluAlpha = static_cast<float>(layerObj["alpha"].get<double>());
+            }
+            if (this->preferHp) {
+                leakyReluAlpha = snn::convertToMediumPrecision(leakyReluAlpha);
             }
         }
     }
@@ -809,47 +818,78 @@ int ModelParser::getDepthwiseConvolutionLayer(int& layerId, int& numOutputPlanes
         stride     = (int) layerObj["strides"].get<double_t>();
 
         picojson::object& weightObj = layerObj["weights"].get<picojson::object>();
-        biases.resize(numOutputPlanes);
-        if (layerObj["useBias"].get<std::string>().compare("True") == 0) {
-            picojson::array biasArray = weightObj["bias"].get<picojson::array>();
-            for (int i = 0; i < numOutputPlanes; i++) {
-                biases[i] = biasArray[i].get<double_t>();
-                //                if (this->preferHp) biases[i] = snn::convertToMediumPrecision(biases[i]);
+        weights = std::vector<cv::Mat>(numInputPlanes,
+                                       cv::Mat(kernelSize, kernelSize, CV_32FC1));
+
+        int matProgress = 0;
+        float value;
+        if (isBinWeight) {
+            for (int j = 0; j < numInputPlanes; j++) {
+                cv::Mat writeMatrix = cv::Mat::zeros(kernelSize, kernelSize, CV_32FC1);
+                for (int writingRow = 0; writingRow < kernelSize; writingRow++) {
+                    for (int writingCol = 0; writingCol < kernelSize; writingCol++) {
+                        binFile.read((char*)&value, sizeof(float));
+                        if (this->preferHp) {
+                            value = snn::convertToMediumPrecision(value);
+                        }
+                        writeMatrix.at<float>(writingRow, writingCol) = value;
+                    }
+                }
+                weights.at(matProgress) = std::move(writeMatrix);
+                matProgress++;
             }
         } else {
+            picojson::array weightArray = weightObj["kernel"].get<picojson::array>();
+            std::vector<float> chw(numInputPlanes * kernelSize * kernelSize, 0.0f);
+            uint32_t planeSize = kernelSize * kernelSize;
+
+            for (size_t i = 0; i < planeSize; ++i) {
+                for (int c = 0; c < numInputPlanes; ++c) {
+                    chw[c * planeSize + i] = (float) weightArray[i * numInputPlanes + c].get<double_t>();
+                }
+            }
+            int element_number = 0;
+            for (int j = 0; j < numInputPlanes; j++) {
+                cv::Mat writeMatrix = cv::Mat::zeros(kernelSize, kernelSize, CV_32FC1);
+                for (int writingRow = 0; writingRow < kernelSize; writingRow++) {
+                    for (int writingCol = 0; writingCol < kernelSize; writingCol++) {
+                        float data = chw[element_number];
+                        if (this->preferHp) {
+                            data = snn::convertToMediumPrecision(data);
+                        }
+                        element_number++;
+                        writeMatrix.at<float>(writingRow, writingCol) = data;
+                    }
+                }
+                weights.at(matProgress) = std::move(writeMatrix);
+                matProgress++;
+            }
+        }
+
+        biases.resize(numOutputPlanes);
+        if (layerObj["useBias"].get<std::string>().compare("True") == 0) {
+            if (isBinWeight) {
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    binFile.read((char*)&value, sizeof(float));
+                    biases[i] = value;
+                    if (this->preferHp) {
+                        biases[i] = snn::convertToMediumPrecision(biases[i]);
+                    }
+                }
+            } else {
+                picojson::array biasArray = weightObj["bias"].get<picojson::array>();
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    biases[i] = biasArray[i].get<double_t>();
+                    if (this->preferHp) {
+                        biases[i] = snn::convertToMediumPrecision(biases[i]);
+                    }
+                }
+            }
+        }
+        else {
             for (int i = 0; i < numOutputPlanes; i++) {
                 biases[i] = 0;
             }
-        }
-
-        picojson::array weightArray = weightObj["kernel"].get<picojson::array>();
-
-        std::vector<float> chw(numInputPlanes * kernelSize * kernelSize, 0.0f);
-        uint32_t planeSize = kernelSize * kernelSize;
-
-        for (size_t i = 0; i < planeSize; ++i) {
-            for (size_t c = 0; c < numInputPlanes; ++c) {
-                chw[c * planeSize + i] = (float) weightArray[i * numInputPlanes + c].get<double_t>();
-            }
-        }
-
-        weights            = std::vector<cv::Mat>(numInputPlanes, cv::Mat(kernelSize, kernelSize, CV_32FC1));
-        int matProgress    = 0;
-        int element_number = 0;
-
-        for (int j = 0; j < numInputPlanes; j++) {
-            cv::Mat writeMatrix = cv::Mat::zeros(kernelSize, kernelSize, CV_32FC1);
-            for (int writingRow = 0; writingRow < kernelSize; writingRow++) {
-                for (int writingCol = 0; writingCol < kernelSize; writingCol++) {
-                    // float data = (float) weightArray[element_number].get<double_t>();
-                    float data = chw[element_number];
-                    //                    if (this->preferHp) data = snn::convertToMediumPrecision(data);
-                    element_number++;
-                    writeMatrix.at<float>(writingRow, writingCol) = data;
-                }
-            }
-            weights.at(matProgress) = std::move(writeMatrix);
-            matProgress++;
         }
 
         useBatchNormalization = (layerObj["useBatchNormalization"].get<std::string>().compare("True") == 0) ? true : false;
@@ -860,41 +900,67 @@ int ModelParser::getDepthwiseConvolutionLayer(int& layerId, int& numOutputPlanes
             std::vector<float> meanBN;
             std::vector<float> varianceBN;
             picojson::object& batchNormObj = layerObj["batchNormalization"].get<picojson::object>();
-            picojson::array betaArray      = batchNormObj["beta"].get<picojson::array>();
-            picojson::array gammaArray     = batchNormObj["gamma"].get<picojson::array>();
-            picojson::array movingMean;
-
-            if (batchNormObj.count("moving_mean")) {
-                movingMean = batchNormObj["moving_mean"].get<picojson::array>();
+            if (isBinWeight) {
+                gammaBN = std::vector<float>(numOutputPlanes);
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    binFile.read((char*)&value, sizeof(float));
+                    gammaBN[i] = value;
+                }
+                SNN_LOGV("Conv2D loaded gammaBN last element %f", value);
+                betaBN = std::vector<float>(numOutputPlanes);
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    binFile.read((char*)&value, sizeof(float));
+                    betaBN[i] = value;
+                }
+                SNN_LOGV("Conv2D loaded betaBN last element %f", value);
+                meanBN = std::vector<float>(numOutputPlanes);
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    binFile.read((char*)&value, sizeof(float));
+                    meanBN[i] = value;
+                }
+                SNN_LOGV("Conv2D loaded meanBN last element %f", value);
+                varianceBN = std::vector<float>(numOutputPlanes);
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    binFile.read((char*)&value, sizeof(float));
+                    varianceBN[i] = value;
+                }
+                SNN_LOGV("Conv2D loaded varianceBN last element %f", value);
             } else {
-                movingMean = batchNormObj["movingMean"].get<picojson::array>();
-            }
+                picojson::array betaArray = batchNormObj["beta"].get<picojson::array>();
+                picojson::array gammaArray = batchNormObj["gamma"].get<picojson::array>();
+                picojson::array movingMean;
+                picojson::array movingVariance;
+                if (batchNormObj.count("moving_mean")) {
+                    movingMean = batchNormObj["moving_mean"].get<picojson::array>();
+                } else {
+                    movingMean = batchNormObj["movingMean"].get<picojson::array>();
+                }
+                if (batchNormObj.count("moving_variance")) {
+                    movingVariance = batchNormObj["moving_variance"].get<picojson::array>();
+                } else {
+                    movingVariance = batchNormObj["movingVariance"].get<picojson::array>();
+                }
 
-            picojson::array movingVariance;
-            if (batchNormObj.count("moving_variance")) {
-                movingVariance = batchNormObj["moving_variance"].get<picojson::array>();
-            } else {
-                movingVariance = batchNormObj["movingVariance"].get<picojson::array>();
-            }
-
-            for (int i = 0; i < numOutputPlanes; i++) {
-                //                if (this->preferHp) {
-                //                    betaBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(betaArray[i].get<double>())));
-                //                    gammaBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(gammaArray[i].get<double>())));
-                //                    meanBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(movingMean[i].get<double>())));
-                //                    varianceBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(movingVariance[i].get<double>())));
-                //                } else {
-                betaBN.emplace_back(static_cast<float>(betaArray[i].get<double>()));
-                gammaBN.emplace_back(static_cast<float>(gammaArray[i].get<double>()));
-                meanBN.emplace_back(static_cast<float>(movingMean[i].get<double>()));
-                varianceBN.emplace_back(static_cast<float>(movingVariance[i].get<double>()));
-                //                }
+                for (int i = 0; i < numOutputPlanes; i++) {
+                    if (this->preferHp) {
+                        betaBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(betaArray[i].get<double>())));
+                        gammaBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(gammaArray[i].get<double>())));
+                        meanBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(movingMean[i].get<double>())));
+                        varianceBN.emplace_back(snn::convertToMediumPrecision(static_cast<float>(movingVariance[i].get<double>())));
+                    } else {
+                        betaBN.emplace_back(static_cast<float>(betaArray[i].get<double>()));
+                        gammaBN.emplace_back(static_cast<float>(gammaArray[i].get<double>()));
+                        meanBN.emplace_back(static_cast<float>(movingMean[i].get<double>()));
+                        varianceBN.emplace_back(static_cast<float>(movingVariance[i].get<double>()));
+                    }
+                }
             }
             batchNormalization.insert(std::pair<std::string, std::vector<float>>("beta", betaBN));
             batchNormalization.insert(std::pair<std::string, std::vector<float>>("gamma", gammaBN));
             batchNormalization.insert(std::pair<std::string, std::vector<float>>("movingMean", meanBN));
             batchNormalization.insert(std::pair<std::string, std::vector<float>>("movingVariance", varianceBN));
         }
+
         if (activation.compare("leakyRelu") == 0) {
             if (this->preferHp) {
                 if (layerObj.count("leakyReluAlpha")) {
@@ -1044,7 +1110,7 @@ int ModelParser::getBatchNormLayer(int& layerId, int& numOutputPlanes, int& numI
 }
 
 int ModelParser::getPaddingLayer(int& layerId, int& numOutputPlanes, int& numInputPlanes, std::string& paddingT, std::string& paddingB, std::string& paddingL,
-                                 std::string& paddingR, std::string& mode, float& constant) {
+                                 std::string& paddingR, std::string&, float& /*constant*/) {
     try {
         picojson::object& layerObj = _modelOb.get("Layer_" + std::to_string(layerId)).get<picojson::object>();
         numOutputPlanes            = static_cast<int>(layerObj["outputPlanes"].get<double_t>());
@@ -1071,7 +1137,6 @@ int ModelParser::getPaddingLayer(int& layerId, int& numOutputPlanes, int& numInp
                 paddingR = paddingL;
             }
         }
-        // std::cout << "padding values in modelparser are "<<paddingT<<" "<<paddingB<<" "<<paddingL<<" "<<paddingR<<std::endl;
     }
 
     catch (std::exception& e) {

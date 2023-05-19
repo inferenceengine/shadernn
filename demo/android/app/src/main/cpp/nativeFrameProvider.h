@@ -14,10 +14,16 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/image.h>
-#include <mutex>
-#include "src/queues.h"
+#include "snn/snn.h"
+#include "snn/image.h"
+#include "inferenceengine.h"
+#include "demoutils.h"
+#include "queues.h"
+#include <vector>
+#include <utility>
+#include <type_traits>
+#include <functional>
+#include <variant>
 
 namespace snn {
 class NativeFrameProvider : public FrameProvider2 {
@@ -95,82 +101,4 @@ private:
     static void copyImageData(const snn::ManagedRawImage& src, snn::RawImage& dst);
 };
 
-#if 0
-// this is an simplified version of frame provider. not being used yet. the code here is for reference only.
-class NativeFrameProvider2 : public FrameProvider2 {
-    struct FrameData {
-        ColorFormat f;
-        size_t w, h;
-        std::vector<uint8_t> img;
-        FrameData() = default;
-        SNN_NO_COPY_CAN_MOVE(FrameData);
-    };
-    moodycamel::ReaderWriterQueue<FrameData, 4> _frames;
-    std::vector<FrameData> _cache; // this is to avoid runtime memory allocation
-    std::mutex _mutex;
-
-public:
-    NativeFrameProvider2() : _frames(3) {}
-
-    bool fetchData(const std::vector<FrameImage2*> & images) override {
-        if (_frames.size_approx() < images.size()) {
-            return false;
-        }
-        static Timer timer("NativeFrameProvider - copy frame content CPU -> CPU");
-        ScopedTimer st(timer);
-        for (auto & dst : images) {
-            FrameData src;
-            if (_frames.try_dequeue(src)) {
-                auto & dd = dst->desc();
-                if (dd.width == src.w && dd.height == src.h && dd.format == ColorFormat::RGBA8 &&
-                    (ColorFormat::NV12 == src.f || ColorFormat::NV21 == src.f)) {
-                    auto yuv = snn::RawImage(ImageDesc::nv12(src.w, src.h), (void*)src.img.data());
-                    SNN_ASSERT(yuv.size() == src.img.size());
-                    auto rgba = dst->getCpuData();
-                    if (ColorFormat::NV12 == src.f) {
-                        nv12ToRgba8(yuv, rgba);
-                    } else {
-                        nv21ToRgba8(yuv, rgba);
-                    }
-                } else {
-                    SNN_LOGE("unsupported incoming frame");
-                }
-                _cache.push_back(std::move(src));
-            }
-        }
-    }
-
-    void queueFrame(ColorFormat f, size_t w, size_t h, const uint8_t* img, size_t length) {
-        if (_frames.size_approx() > 2) {
-            // Oh, no. We just dropped a frame.
-            return;
-        }
-
-        _mutex.lock();
-        if (_cache.empty()) {
-            _cache.emplace_back();
-        }
-        auto frame = std::move(_cache.back());
-        _cache.pop_back();
-        _mutex.unlock();
-
-        frame.f = f;
-        frame.w = w;
-        frame.h = h;
-        frame.img.resize(length);
-        std::copy(img, img + length, frame.img.begin());
-
-        _frames.enqueue(std::move(frame));
-    }
-
-    void queueYUVFrame(size_t w, size_t h, const uint8_t * y, const uint8_t * u, const uint8_t * v) {
-        (void)w;
-        (void)h;
-        (void)y;
-        (void)u;
-        (void)v;
-        SNN_RIP("not implemented.");
-    }
-};
-#endif
 } // namespace snn

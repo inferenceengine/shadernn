@@ -14,18 +14,13 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -37,7 +32,6 @@ struct InstanceNormDesc : GenericConvDesc {
     float leakyReluAlpha;
     std::string padding;
     bool useUniformShaders    = true;
-    bool preferrHalfPrecision = false;
     float epsilon;
     void parse(ModelParser& parser, int layerId) {
         GenericConvDesc::parse(parser, layerId);
@@ -46,21 +40,17 @@ struct InstanceNormDesc : GenericConvDesc {
     }
 };
 
+// This is a base class to generates a shader for an instance normalization
 class InstanceNormLayer : public GenericConvolutionLayer {
 public:
-    InstanceNormLayer(InstanceNormDesc&& d);
-    ~InstanceNormLayer() {}
-    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
+    InstanceNormLayer(InstanceNormDesc&& d): GenericConvolutionLayer(d), _desc(std::move(d)) {}
+    virtual ~InstanceNormLayer() = default;
+    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override {
+        return {0, {{1.0f, 1.0f, 0.0f, 0.0f}} };
+    }
 
 protected:
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
-    void getPaddingOffset(uint32_t (&offsets)[4]) const;
     InstanceNormDesc _desc;
-    snn::FixedSizeArray<gl::BufferObject<GL_SHADER_STORAGE_BUFFER>> weightSSBOBuffers;
-    std::vector<double> biases;
 };
 
 }; // namespace dp

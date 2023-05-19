@@ -1,0 +1,211 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = WG_X, local_size_y = WG_Y, local_size_z = WG_Z) in;
+
+layout (set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D outputImage;
+layout (set=0, binding=1) uniform PRECISION sampler3D inputImage;
+//layout (set=0, binding=1, OUTPUT_FORMAT) uniform PRECISION image3D inputImage;
+
+#define PROFILE_FLAG 1
+#if PROFILE_FLAG
+layout (set=0, binding=2, OUTPUT_FORMAT) uniform PRECISION image3D uKernel;
+//layout (set=0, binding=2) uniform PRECISION sampler3D uKernel;
+#else
+layout (set=0, binding=2) buffer FilterBufffer { vec4 data[]; } Filter;
+#endif
+
+layout (set=0, binding=3) buffer BiasBuffer { vec4 data[]; } uBias;
+layout (set=0, binding=4) buffer BN_Beta { vec4 data[]; } uBeta;
+layout (set=0, binding=5) buffer BN_Gamma { vec4 data[]; } uGamma;
+layout (set=0, binding=6) buffer BN_Mean { vec4 data[]; } uMean;
+layout (set=0, binding=7) buffer BN_Variance { vec4 data[]; } uVariance;
+
+layout(constant_id = 0)  const int uStridex = 1;
+layout(constant_id = 1)  const int uStridey = 1;
+layout(constant_id = 2)  const int uOutputSizex = 1;
+layout(constant_id = 3)  const int uOutputSizey = 1;
+layout(constant_id = 4)  const int uOutputSizez = 1;
+layout(constant_id = 5)  const int uInputSizex = 1;
+layout(constant_id = 6)  const int uInputSizey = 1;
+layout(constant_id = 7)  const int uInputSizez = 1;
+layout(constant_id = 8)  const int uUnroll = 4;
+layout(constant_id = 9)  const int activation = 0;
+layout(constant_id = 10) const int paddingMode = 0;
+layout(constant_id = 11) const int useBatchNorm = 0;
+layout(constant_id = 12) const int useBias = 0;
+layout(constant_id = 13) const float leakyReluVal = 0.f;
+
+#define UP_DIV(x, y) (((x)+(y)-1)/(y))
+#define ROUND_UP(x, y) (((x) + (y) - (1)) / (y) * (y))
+
+void main()
+{
+    if (all(lessThan(ivec3(gl_GlobalInvocationID), ivec3(uOutputSizex, uOutputSizey, uOutputSizez))))
+    {
+        ivec3 pos = ivec3(gl_GlobalInvocationID)*ivec3(uUnroll, 1, 1);
+        ivec2 s0 = ivec2(0);
+        s0.x = pos.x * uStridex;
+        s0.y = pos.y * uStridey;
+        int sy = s0.y;
+        int sx = s0.x;
+        int fx = 0, fy, fz;
+        int sx1 = s0.x;
+        int sx2 = sx1 + uStridex;
+        int sx3 = sx2 + uStridex;
+        int sx4 = sx3 + uStridex;
+        vec4 color1 = uBias.data[pos.z];
+        vec4 color2 = color1;
+        vec4 color3 = color1;
+        vec4 color4 = color1;
+        int kernelY = pos.z;
+        float m1 = ((sx1 >= 0) && (sx1 < uInputSizex)) ? 1.0 : 0.0;
+        float m2 = ((sx2 >= 0) && (sx2 < uInputSizex)) ? 1.0 : 0.0;
+        float m3 = ((sx3 >= 0) && (sx3 < uInputSizex)) ? 1.0 : 0.0;
+        float m4 = ((sx4 >= 0) && (sx4 < uInputSizex)) ? 1.0 : 0.0;
+        for (fz=0; fz<uInputSizez; ++fz)
+        {
+            int kernel4X = uUnroll*fz;
+
+            #if PROFILE_FLAG
+            vec4 k0 = imageLoad(uKernel, ivec3(kernel4X+0, kernelY, 0));
+            vec4 k1 = imageLoad(uKernel, ivec3(kernel4X+1, kernelY, 0));
+            vec4 k2 = imageLoad(uKernel, ivec3(kernel4X+2, kernelY, 0));
+            vec4 k3 = imageLoad(uKernel, ivec3(kernel4X+3, kernelY, 0)); 
+            //vec4 k0 = texelFetch(uKernel, ivec3(kernel4X+0, kernelY, 0), 0);
+            //vec4 k1 = texelFetch(uKernel, ivec3(kernel4X+1, kernelY, 0), 0);
+            //vec4 k2 = texelFetch(uKernel, ivec3(kernel4X+2, kernelY, 0), 0);
+            //vec4 k3 = texelFetch(uKernel, ivec3(kernel4X+3, kernelY, 0), 0); 
+            #else
+            vec4 k0 = Filter.data[(kernel4X + 0) + (kernelY * uInputSizez * 4)];
+            vec4 k1 = Filter.data[(kernel4X + 1) + (kernelY * uInputSizez * 4)];
+            vec4 k2 = Filter.data[(kernel4X + 2) + (kernelY * uInputSizez * 4)];
+            vec4 k3 = Filter.data[(kernel4X + 3) + (kernelY * uInputSizez * 4)];
+            #endif
+            
+            mat4 k = mat4(k0, k1, k2, k3);
+            
+            color1 += k*texelFetch(inputImage, ivec3(sx1, sy, fz), 0) * m1;
+            color2 += k*texelFetch(inputImage, ivec3(sx2, sy, fz), 0) * m2;
+            color3 += k*texelFetch(inputImage, ivec3(sx3, sy, fz), 0) * m3;
+            color4 += k*texelFetch(inputImage, ivec3(sx4, sy, fz), 0) * m4;
+            
+            //color1 = texelFetch(inputImage, ivec3(sx1, sy, fz), 0);
+            //color2 = texelFetch(inputImage, ivec3(sx2, sy, fz), 0);
+            //color3 = texelFetch(inputImage, ivec3(sx3, sy, fz), 0);
+            //color4 = texelFetch(inputImage, ivec3(sx4, sy, fz), 0);
+
+            //color1 += k*imageLoad(inputImage, ivec3(sx1, sy, fz)) * m1;
+            //color2 += k*imageLoad(inputImage, ivec3(sx2, sy, fz)) * m2;
+            //color3 += k*imageLoad(inputImage, ivec3(sx3, sy, fz)) * m3;
+            //color4 += k*imageLoad(inputImage, ivec3(sx4, sy, fz)) * m4;
+
+            //color1 = imageLoad(inputImage, ivec3(sx1, sy, fz)) ;
+            //color2 = imageLoad(inputImage, ivec3(sx2, sy, fz)) ;
+            //color3 = imageLoad(inputImage, ivec3(sx3, sy, fz)) ;
+            //color4 = imageLoad(inputImage, ivec3(sx4, sy, fz)) ; 
+
+            //color1 = vec4(0.7f);
+            //color2 = vec4(0.1f);
+            //color3 = vec4(0.7f);
+            //color4 = vec4(0.1f);              
+        }
+
+        // BatchNormalization
+        if (useBatchNorm == 1) {
+            vec4 movingVariance = uVariance.data[pos.z]; 
+            vec4 movingMean = uMean.data[pos.z];         
+            vec4 gamma = uGamma.data[pos.z]; 
+            vec4 beta = uBeta.data[pos.z];                 
+            vec4 sqrtVar = sqrt(movingVariance + vec4(0.001f));         
+            sqrtVar = max(sqrtVar, vec4(0.0001f)); 
+            color1 = ((gamma/sqrtVar) * (color1 - movingMean)) + beta;   
+            color2 = ((gamma/sqrtVar) * (color2 - movingMean)) + beta; 
+            color3 = ((gamma/sqrtVar) * (color3 - movingMean)) + beta; 
+            color4 = ((gamma/sqrtVar) * (color4 - movingMean)) + beta;
+        }
+        
+        // RELU
+        if (activation == 1) {
+            color1 = max(color1, vec4(0));
+            color2 = max(color2, vec4(0));
+            color3 = max(color3, vec4(0));
+            color4 = max(color4, vec4(0));
+        }
+
+        // RELU6
+        if (activation == 2) {
+            color1 = clamp(color1, vec4(0), vec4(6));
+            color2 = clamp(color2, vec4(0), vec4(6));
+            color3 = clamp(color3, vec4(0), vec4(6));
+            color4 = clamp(color4, vec4(0), vec4(6));
+        }
+
+        // TANH
+        if (activation == 3) {
+            color1 = tanh(color1);
+            color2 = tanh(color2);
+            color3 = tanh(color3);
+            color4 = tanh(color4);
+        }
+
+        // SIGMOID
+        if (activation == 4) {
+            color1 = vec4(1.0f)/(vec4(1.0f)+ exp(-color1));
+            color2 = vec4(1.0f)/(vec4(1.0f)+ exp(-color2));
+            color3 = vec4(1.0f)/(vec4(1.0f)+ exp(-color3));
+            color4 = vec4(1.0f)/(vec4(1.0f)+ exp(-color4));
+        }
+
+        // LEAKY RELU
+        if (activation == 5) {
+            // Don't inline this temporary variable !!!
+            // Android Vulkan driver has a weird bug here
+            // with floating specialization constants using in combination with mediump
+            vec4 vec4leakyReluVal = vec4(leakyReluVal);
+            color1 = max(color1, (color1 * vec4leakyReluVal));
+            color2 = max(color2, (color2 * vec4leakyReluVal));
+            color3 = max(color3, (color3 * vec4leakyReluVal));
+            color4 = max(color4, (color4 * vec4leakyReluVal));
+        }
+
+        // SILU
+        if (activation == 6) {
+            color1 = color1 * vec4(1.0f)/(vec4(1.0f)+ exp(-color1));
+            color2 = color2 * vec4(1.0f)/(vec4(1.0f)+ exp(-color1));
+            color3 = color3 * vec4(1.0f)/(vec4(1.0f)+ exp(-color1));
+            color4 = color4 * vec4(1.0f)/(vec4(1.0f)+ exp(-color1));
+        }
+                        
+        imageStore(outputImage, ivec3(pos.x+0, pos.y, pos.z), color1);
+        imageStore(outputImage, ivec3(pos.x+1, pos.y, pos.z), color2);
+        imageStore(outputImage, ivec3(pos.x+2, pos.y, pos.z), color3);
+        imageStore(outputImage, ivec3(pos.x+3, pos.y, pos.z), color4);         
+    }
+}

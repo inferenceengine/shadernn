@@ -1,0 +1,55 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = 4, local_size_y = 8, local_size_z = 1) in;
+
+layout(set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D uOutput;
+layout(set=0, binding=1) uniform PRECISION sampler3D uInput;
+
+layout(set=0, binding=2) buffer InputBuffer {
+    uvec4 outputSize;   // Need vector of 4, because of the alignment rules
+    vec4 means;
+    vec4 norms;
+} uParams;
+
+void main()
+{
+    ivec3 ipos = ivec3(gl_GlobalInvocationID);
+    vec3 pos = ipos + vec3(0.5f, 0.5f, 0.5f);
+
+    vec3 outputSize = uParams.outputSize.xyz;
+    if (pos.x < outputSize.x && pos.y < outputSize.y && pos.z < outputSize.z)
+    {
+        vec3 texCoords = pos / outputSize;
+
+        vec4 value = texture(uInput, texCoords);
+        value = (value - uParams.means) * uParams.norms;
+        imageStore(uOutput, ipos.xyz, value);
+    }
+}

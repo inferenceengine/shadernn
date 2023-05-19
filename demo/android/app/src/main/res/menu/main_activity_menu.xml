@@ -24,96 +24,80 @@
             android:id="@+id/open_settings"
             android:title="@string/settings"
             android:icon="@drawable/ic_open_settings"
-            app:showAsAction="ifRoom" />
-        <item
-            android:id="@+id/open_from_file"
-            android:title="@string/video"
-            android:icon="@drawable/ic_open_from_file"
-            app:showAsAction="ifRoom"/>
+            app:showAsAction="always" />
     </group>
 
     <item
-        android:id="@+id/hide_show_stage_1"
-        android:title="Hide/Show Denoisers"
-        app:showAsAction="never"
-        android:checkable="true">
+        android:id="@+id/models_header"
+        android:title="Models:">
     </item>
 
     <group
-        android:id="@+id/clearance_1_frame_stage_0_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
+        android:id="@+id/models"
+        android:checkableBehavior="single">
         <item
-            android:id="@+id/clearance_1_frame_no_denoise"
-            android:title="No Denoise"
-            android:checked="true">
+            android:id="@+id/spatialdenoise"
+            android:title="Spatial Denoise">
         </item>
-        <item
-            android:id="@+id/clearance_1_frame_spatialdenoise"
-            android:title="Spatial Denoise"
-            android:checked="false">
-        </item>
-    </group>
 
-    <item
-        android:id="@+id/divider3"
-        android:title="*******************************" />
-
-    <item
-        android:id="@+id/hide_show_classifiers"
-        android:title="Hide/Show Classifiers"
-        app:showAsAction="never"
-        android:checkable="true">
-    </item>
-
-    <group
-        android:id="@+id/classifiers_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item android:id="@+id/no_classifier"
-            android:title="@string/no_classifier"
-            android:checked="true">
-        </item>
-        <item android:id="@+id/resnet18_classifier"
-            android:title="@string/resnet18_classifier">
-        </item>
-         <item android:id="@+id/mobilenetv2_classifier"
-            android:title="@string/mobilenetv2_classifier">
-        </item>
-    </group>
-
-    <item
-        android:id="@+id/divider_5"
-        android:title="*******************************"/>
-
-    <item
-        android:id="@+id/hide_show_detectiions"
-        android:title="Hide/Show Detections"
-        app:showAsAction="never"
-        android:checkable="true">
-    </item>
-
-    <group
-        android:id="@+id/detection_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item android:id="@+id/no_detection"
-            android:title="@string/no_detection"
-            android:checked="true">
-        </item>
         <item android:id="@+id/yolov3_detection"
             android:title="@string/yolov3_detection">
         </item>
+
+        <item
+            android:id="@+id/classifiers_choices"
+            android:title="Classifiers:">
+            <menu>
+            <group
+                android:id="@+id/classifiers_choices1"
+                android:checkableBehavior="single">
+                <item android:id="@+id/resnet18_classifier"
+                    android:title="@string/resnet18_classifier">
+                </item>
+                <item android:id="@+id/mobilenetv2_classifier"
+                    android:title="@string/mobilenetv2_classifier">
+                </item>
+            </group>
+            </menu>
+        </item>
+
+        <item
+            android:id="@+id/style_transfer_choices"
+            android:title="Style Transfer">
+            <menu>
+                <group
+                    android:id="@+id/style_transfer_choices1"
+                    android:checkableBehavior="single">
+                <item android:id="@+id/style_candy"
+                    android:title="@string/style_candy">
+                </item>
+                <item android:id="@+id/style_mosaic"
+                    android:title="@string/style_mosaic">
+                </item>
+                <item android:id="@+id/style_pointilism"
+                    android:title="@string/style_pointilism">
+                </item>
+                <item android:id="@+id/style_rain_princess"
+                    android:title="@string/style_rain_princess">
+                </item>
+                <item android:id="@+id/style_udnie"
+                    android:title="@string/style_udnie">
+                </item>
+                </group>
+            </menu>
+        </item>
     </group>
+
+    <item
+        android:id="@+id/settings_header"
+        android:title="Settings:">
+    </item>
 
     <group
         android:id="@+id/detection_shader_choices"
         android:checkableBehavior="single"
         android:visible="false">
-        <item
-            android:id="@+id/divider_6"
-            android:title="------------------------------------------"
-            android:checkable="false"/>
+        <!-- TODO: add handler for this setting -->
         <item
             android:id="@+id/detection_fragment_shader"
             android:title="Fragment Shader">
@@ -124,39 +108,17 @@
         </item>
     </group>
 
-    <item
-        android:id="@+id/divider_7"
-        android:title="*******************************"/>
-
-    <item
-        android:id="@+id/style_transfer"
-        android:title="Style Transfer"
-        app:showAsAction="never"
-        android:checkable="true">
-    </item>
-
     <group
-        android:id="@+id/style_transfer_choices"
-        android:checkableBehavior="single"
-        android:visible="false">
-        <item android:id="@+id/no_style"
-            android:title="@string/no_style"
+        android:id="@+id/fp_choices"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/fp32"
+            android:title="FP32"
             android:checked="true">
         </item>
-        <item android:id="@+id/style_candy"
-            android:title="@string/style_candy">
-        </item>
-        <item android:id="@+id/style_mosaic"
-            android:title="@string/style_mosaic">
-        </item>
-        <item android:id="@+id/style_pointilism"
-            android:title="@string/style_pointilism">
-        </item>
-        <item android:id="@+id/style_rain_princess"
-            android:title="@string/style_rain_princess">
-        </item>
-        <item android:id="@+id/style_udnie"
-            android:title="@string/style_udnie">
+        <item
+            android:id="@+id/fp16"
+            android:title="FP16">
         </item>
     </group>
 

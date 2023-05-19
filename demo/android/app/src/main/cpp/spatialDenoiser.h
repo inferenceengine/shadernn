@@ -15,43 +15,27 @@
 #pragma once
 
 #include "processor.h"
-#include <snn/texture.h>
-#include <opencv2/core/mat.hpp>
-#include <string>
-#include "ic2/core.h"
+#include "modelProcessorParams.h"
 
-static constexpr const char* SPATIAL_DENOISE_MODEL_NAME = "spatialDenoise.json";
+#include <string>
+#include <memory>
+
+static constexpr const char* SPATIAL_DENOISE_MODEL_NAME = "SpatialDenoise/spatialDenoise.json";
 
 namespace snn {
-class spatialDenoiser : public Processor {
+
+class SpatialDenoiser : public Processor, protected ModelProcessorParams {
 public:
-    ~spatialDenoiser() override = default;
-    void submit(Workload&) override;
-
-    static constexpr const char* defaultPreDenoiseModel() { return SPATIAL_DENOISE_MODEL_NAME; }
-
-    static std::unique_ptr<spatialDenoiser> createPreDenoiser(ColorFormat format, bool compute = false, bool dumpOutputs = false) {
-        return std::unique_ptr<spatialDenoiser>(new spatialDenoiser(format, defaultPreDenoiseModel(), compute, dumpOutputs));
-    }
-
+    virtual ~SpatialDenoiser() = default;
     std::string getModelName() override { return "Spatial Denoiser"; }
 
-private:
-    std::unique_ptr<MixedInferenceCore> _ic2;
-    std::unordered_map<GLuint, std::shared_ptr<Texture>> _frameTextures;
-    std::string _modelFileName;
-    bool _compute, _dumpOutputs;
+    static std::unique_ptr<SpatialDenoiser> createPreDenoiser(ColorFormat format, Precision precision, bool compute = false, bool dumpOutputs = false);
 
-    spatialDenoiser(ColorFormat format, const std::string& modelFileName, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), _modelFileName(modelFileName), _compute(compute), _dumpOutputs(dumpOutputs) {}
-
-    gl::TextureObject* getFrameTexture(GLuint id) {
-        auto& t = _frameTextures[id];
-        // Create a thin shell around textureId
-        if (!t) {
-            t = Texture::createAttached(GL_TEXTURE_2D, id);
-        }
-        return t.get();
-    }
+protected:
+    SpatialDenoiser(ColorFormat format, Precision precision, bool compute, bool dumpOutputs)
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}})
+        , ModelProcessorParams(SPATIAL_DENOISE_MODEL_NAME, {0, 0, 1, 4}, precision, compute, dumpOutputs)  // Dimensions will be updated in init()
+    {}
 };
+
 } // namespace snn

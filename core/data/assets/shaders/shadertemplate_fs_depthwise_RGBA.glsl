@@ -177,19 +177,20 @@ void main()
 		for (int i = 0; i < NUM_KERNEL_SIZE; i++) {
 			for (int j = 0; j < NUM_KERNEL_SIZE; j++) {
 				int arrayAccess = N_DIMS * (layerIdx - layer) + i * NUM_KERNEL_SIZE + j;
+				int texAcess = i * NUM_KERNEL_SIZE + j;
 #ifdef CLAMPED_PADDING
-				texVals[arrayAccess] = texture(inputTextures, vec3(texCoords[arrayAccess], layerIdx));
+				texVals[arrayAccess] = texture(inputTextures, vec3(texCoords[texAcess], layerIdx));
 #endif
 #ifdef CONST_PADDING
-				texVals[arrayAccess] = (checkValid(texCoords[arrayAccess])) ? texture(inputTextures, vec3(texCoords[arrayAccess], layerIdx)) : vec4(PAD_VALUE, PAD_VALUE, PAD_VALUE, PAD_VALUE);
+				texVals[arrayAccess] = (checkValid(texCoords[texAcess])) ? texture(inputTextures, vec3(texCoords[texAcess], layerIdx)) : vec4(PAD_VALUE, PAD_VALUE, PAD_VALUE, PAD_VALUE);
 #endif
 #ifdef REPLICATE_PADDING
-				FLOAT_PRECISION vec2 repCoords = replicatePadding(texCoords[arrayAccess]);
-                texVals[arrayAccess] = (checkValid(texCoords[arrayAccess])) ? texture(inputTextures, vec3(texCoords[arrayAccess], layerIdx)) : texture(inputTextures, vec3(repCoords, layerIdx));
+				FLOAT_PRECISION vec2 repCoords = replicatePadding(texCoords[texAcess]);
+                texVals[arrayAccess] = (checkValid(texCoords[texAcess])) ? texture(inputTextures, vec3(texCoords[texAcess], layerIdx)) : texture(inputTextures, vec3(repCoords, layerIdx));
 #endif
 #ifdef CHECKBOARD_PADDING
-				FLOAT_PRECISION vec2 repCoords = checkboardPadding(texCoords[arrayAccess]);
-                texVals[arrayAccess] = (checkValid(texCoords[arrayAccess])) ? texture(inputTextures, vec3(texCoords[arrayAccess], layer)) : texture(inputTextures, vec3(repCoords, layer));
+				FLOAT_PRECISION vec2 repCoords = checkboardPadding(texCoords[texAcess]);
+                texVals[arrayAccess] = (checkValid(texCoords[texAcess])) ? texture(inputTextures, vec3(texCoords[texAcess], layerIdx)) : texture(inputTextures, vec3(repCoords, layerIdx));
 #endif
 			}
 		}

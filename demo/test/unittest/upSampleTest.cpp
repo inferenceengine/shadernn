@@ -32,22 +32,23 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
-static int test_resize(int w, int h, int c, int outch, int type, int scale) {
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    rc.makeCurrent();
-    ShaderUnitTest test;
+// Global namespace is polluted somewhere
+#ifdef Success
+    #undef Success
+#endif
+#include "CLI/CLI.hpp"
 
-    //    ncnn::Mat padA = RandomMat(w, h, c);
-    ncnn::Mat padA = SetValueMat(w, h, c, 0.0f);
-    padA[12]       = 100;
-    //     padA[4] = 0.44;
-    //    ncnn::Mat padA = {1,2,3};
-    //    for (size_t i = 0; i < padA.total(); i++)
-    //    {
-    //        padA[i] = i;
-    //    }
+static int test_resize(int w, int h, int type, bool useCompute, int scale, const std::vector<double> & values, snn::GpuBackendType backend,
+                       bool printMismatch) {
+    ShaderUnitTest test(backend);
 
-    ncnn::Mat ncnnMat;
+    const int ch    = 1;
+    const int outch = 1;
+
+    ncnn::Mat ncnnMatOrig = SetValueMat(w, h, ch, 0.0f);
+    for (size_t i = 0, k = 0; i < h; ++i) {
+        for (size_t j = 0; j < w && k < values.size(); ++j, ++k) { ncnnMatOrig[k] = values[k]; }
+    }
 
     ncnn::ParamDict pd;
     pd.set(0, type);
@@ -56,34 +57,59 @@ static int test_resize(int w, int h, int c, int outch, int type, int scale) {
     pd.set(3, h * scale);
     pd.set(4, w * scale);
 
-    std::vector<ncnn::Mat> weights(0);
-
-    int ret = test_layer_naive<ncnn::Interp>(ncnn::layer_to_index("Interp"), pd, weights, padA, ncnnMat, (void (*)(ncnn::Interp*)) 0, 0);
+    ncnn::Mat ncnnMatResized;
+    int       ret = test_layer_naive<ncnn::Interp>(ncnn::layer_to_index("Interp"), pd, std::vector<ncnn::Mat>(), ncnnMatOrig, ncnnMatResized,
+                                             (void (*)(ncnn::Interp *)) 0, 0);
     if (ret != 0) {
         fprintf(stderr, "test_layer_naive failed\n");
+        return ret;
     }
 
-    auto inputMat = NCNNMat2CVMat(padA);
-    auto outFile  = test.snnUpsampleTestWithLayer(inputMat, w, h, c, scale, type);
-
-    printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
+    auto inputMat  = NCNNMat2CVMat(ncnnMatOrig);
+    auto outFile   = test.snnUpsampleTestWithLayer(inputMat, w, h, ch, scale, type, useCompute);
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, outch);
-    // pretty_print_ncnn(snnOutput);
 
-    pretty_print_ncnn(padA);
-    ret = CompareMat(ncnnMat, snnOutput, 0.1);
-    pretty_print_ncnn(ncnnMat);
-    pretty_print_ncnn(snnOutput);
+    ret = CompareMat(ncnnMatResized, snnOutput, 0.1);
+    printf("\nupsample test res: %s for w=%d, h=%d, c=%d, outch=%d, type=%d, scale=%d\n", ret ? "FAILED" : "succeeded", w, h, ch, outch, type, scale);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(ncnnMatResized);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
-    printf("test_upsample test res: %d for w=%d, h=%d, c=%d, outch=%d, type=%d, scale=%d\n", ret, w, h, c, outch, type, scale);
-
-    return 0;
+    return ret;
 }
 
-int main() {
+int main(int argc, char ** argv) {
     SRAND(7767517);
 
-    test_resize(4, 4, 1, 1, 1, 2);
+    int                 width         = 2;
+    int                 height        = 2;
+    int                 scale         = 2;
+    int                 type          = 1;
+    bool                useCompute    = false;
+    bool                useVulkan     = false;
+    bool                printMismatch = false;
+    std::vector<double> values {1.0, 2.0, 3.0, 4.0};
+
+    CLI::App app;
+    app.add_option("-W", width, "width");
+    app.add_option("-H", height, "height");
+    app.add_option("-S", scale, "scale");
+    app.add_flag("--use_compute", useCompute, "Use compute shader");
+    app.add_set("--type", type, {1, 2}, "Interpolation type. 1 = Nearest, 2 = Bilinear");
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    app.add_option("--values", values, "Values");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    printf("Using %s type\n", type == 1 ? "NEAREST" : "BILINEAR");
+    printf("Using %s shader\n", useCompute ? "COMPUTE" : "FRAGMENT");
+    printf("Using %s backend\n", useVulkan ? "Vulkan" : "OpnGL");
+
+    test_resize(width, height, type, useCompute, scale, values, backend, printMismatch);
 
     return 0;
 }

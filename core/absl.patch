@@ -1,0 +1,48 @@
+diff --git a/absl/base/options.h b/absl/base/options.h
+index 56b4e36e..7f1a5f29 100644
+--- a/absl/base/options.h
++++ b/absl/base/options.h
+@@ -154,7 +154,7 @@
+ // absl::string_view is a typedef of std::string_view, use the feature macro
+ // ABSL_USES_STD_STRING_VIEW.
+ 
+-#define ABSL_OPTION_USE_STD_STRING_VIEW 2
++#define ABSL_OPTION_USE_STD_STRING_VIEW 0
+ 
+ // ABSL_OPTION_USE_STD_VARIANT
+ //
+@@ -205,7 +205,7 @@
+ // be changed to a new, unique identifier name.  In particular "head" is not
+ // allowed.
+ 
+-#define ABSL_OPTION_USE_INLINE_NAMESPACE 1
++#define ABSL_OPTION_USE_INLINE_NAMESPACE 0
+ #define ABSL_OPTION_INLINE_NAMESPACE_NAME lts_20211102
+ 
+ // ABSL_OPTION_HARDENED
+diff --git a/absl/strings/internal/cord_rep_btree.cc b/absl/strings/internal/cord_rep_btree.cc
+index 4404f33a..785a0ec9 100644
+--- a/absl/strings/internal/cord_rep_btree.cc
++++ b/absl/strings/internal/cord_rep_btree.cc
+@@ -68,8 +68,10 @@ void DumpAll(const CordRep* rep, bool include_contents, std::ostream& stream,
+       // Allow for up to 60 wide display of content data, which with some
+       // indentation and prefix / labels keeps us within roughly 80-100 wide.
+       constexpr size_t kMaxDataLength = 60;
++      auto tmp = CordRepBtree::EdgeData(r).substr(0, kMaxDataLength);
++      std::string tmpStr= {tmp.begin(), tmp.end()};
+       stream << ", data = \""
+-             << CordRepBtree::EdgeData(r).substr(0, kMaxDataLength)
++             << tmpStr
+              << (r->length > kMaxDataLength ? "\"..." : "\"");
+     }
+     stream << '\n';
+@@ -353,7 +355,8 @@ void CordRepBtree::Dump(const CordRep* rep, absl::string_view label,
+                         bool include_contents, std::ostream& stream) {
+   stream << "===================================\n";
+   if (!label.empty()) {
+-    stream << label << '\n';
++    std::string tmpStr= {label.begin(), label.end()};
++    stream << tmpStr << '\n';
+     stream << "-----------------------------------\n";
+   }
+   if (rep) {

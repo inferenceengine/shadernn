@@ -14,16 +14,16 @@
 */
 layout(OUTPUT_FORMAT, binding=0) writeonly uniform PRECISION image2DArray uOutImage;
 layout(OUTPUT_FORMAT, binding=1) readonly uniform PRECISION image2DArray uInImage;
-layout(binding=2) readonly buffer weightBuffer{
+layout(binding = 3) readonly buffer weightBuffer{
     float data[];
 } uWightBuffer;
-layout(binding=3) readonly buffer biasBuffer{
+layout(binding = 4) readonly buffer biasBuffer{
     float data[];
 } uBiasBuffer;
-layout(location = 4) uniform int uWidth;
-layout(location = 5) uniform int uHeight;
-layout(location = 6) uniform int activation;
-//layout(binding=7) writeonly buffer destBuffer{
+layout(location = 5) uniform int uWidth;
+layout(location = 6) uniform int uHeight;
+layout(location = 7) uniform int activation;
+//layout(binding= 8) writeonly buffer destBuffer{
 //    float data[];
 //} uOutBuffer;
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;

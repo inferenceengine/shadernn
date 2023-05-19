@@ -1,16 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     buildToolsVersion '29.0.3'
-    ndkVersion = '21.1.6352462'
+    ndkVersion = '21.4.7075529'
     defaultConfig {
         applicationId "com.innopeaktech.seattle.snndemo"
         minSdkVersion 28
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "com.oppo.seattle.snndemo.CustomInstrumentationRunner"
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_STL=c++_shared'
@@ -24,7 +24,7 @@ android {
                     '../../../snn-core-install/lib/',
                     'libs'
             ]
-            assets.srcDirs = ['../../../core/data/assets']
+            assets.srcDirs = ['../../../core/data/assets', 'shaders']
         }
     }
     signingConfigs {
@@ -40,6 +40,7 @@ android {
         debug {
             ndkConfig.abiFilters "arm64-v8a"
             crunchPngs false
+            jniDebuggable true
         }
         profile {
             initWith release
@@ -97,6 +98,10 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+    androidTestImplementation "androidx.test:runner:1.1.1"
+    androidTestImplementation "androidx.test:rules:1.1.1"
+
     compileOnly files('system_libraries/framework.jar')
 }
 

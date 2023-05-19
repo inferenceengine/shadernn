@@ -16,27 +16,33 @@
 set -e
 ROOT=`dirname "$(realpath $0)"`
 
-adb root
-adb remount
-adb shell setenforce 0
+#adb root
+#adb remount
+#adb shell setenforce 0
 
 clean_phone_json_models()
 {
     adb shell rm -rf /data/local/tmp/jsonModel
     adb shell mkdir /data/local/tmp/jsonModel
+    adb shell rm -rf /data/local/tmp/files
+    adb shell mkdir -p /data/local/tmp/files
+    adb shell rm -rf /data/local/tmp/inferenceCoreDump
+    adb shell mkdir -p /data/local/tmp/inferenceCoreDump
 }
 
 push_phone_json_models()
 {   
     clean_phone_json_models
-    adb push ${ROOT}/../../modelzoo/ESPCN/ESPCN_2X_16_16_4.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/MobileNetV2/mobilenetV2.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/Resnet18/resnet18_cifar10.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/SpatialDenoise/spatialDenoise.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/U-Net/unet.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/Yolov3-tiny/yolov3-tiny.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/Yolov3-tiny/yolov3-tiny_finetuned.json /data/local/tmp/jsonModel
-    adb push ${ROOT}/../../modelzoo/StyleTransfer/*.json /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/ESPCN /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/MobileNetV2 /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/Resnet18 /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/SpatialDenoise /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/U-Net /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/Yolov3-tiny /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../modelzoo/StyleTransfer /data/local/tmp/jsonModel
+    adb push ${ROOT}/../../core/data/assets /data/local/tmp/files
+    adb shell chmod -R 777 /data/local/tmp/files
+    adb shell chmod -R 777 /data/local/tmp/jsonModel
 }
 
 if [ "$1" == "models" ]; then

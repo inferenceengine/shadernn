@@ -16,30 +16,19 @@ package com.oppo.seattle.snndemo;
 
 public class AlgorithmConfig {
 
-    public enum Pipeline {
-        CLEARANCE1FRAME,
-        CLEARANCE2FRAME,
-        HYBRIDDL,
-        BASIC_CNN
-    }
-
     public enum DenoiserAlgorithm {
         NONE, AIDENOISER, SPATIALDENOISER
     }
 
-    public enum Denoiser {
-        NONE, COMPUTESHADER, FRAGMENTSHADER
-    }
-
-    public enum Clearance {
-        NONE, SPRINT3CPU, SPRINT3DSP, SPRINT4CPU, SPRINT4DSP, SPRINT5CPU, SPRINT5DSP
+    public enum DenoiserShader {
+        COMPUTESHADER, FRAGMENTSHADER
     }
 
     public enum ClassifierAlgorithm {
         NONE, RESNET18, MOBILENETV2
     }
 
-    public enum Classifier {
+    public enum ClassifierShader {
         COMPUTESHADER, FRAGMENTSHADER
     }
 
@@ -47,8 +36,12 @@ public class AlgorithmConfig {
         NONE, YOLOV3
     }
 
-    public enum Detection {
+    public enum DetectionShader {
         COMPUTESHADER, FRAGMENTSHADER
+    }
+
+    public enum Precision {
+        FP32, FP16
     }
 
     public enum StyleTransfer {
@@ -59,14 +52,13 @@ public class AlgorithmConfig {
     private String[] resnet18Classes = {"None", "airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"};
     private String[] mobilenetClasses = {"None", "Class 1", "Class 2"};
 
-    private Pipeline pipeline;
-    private Denoiser denoiser;
+    private DenoiserShader denoiserShader;
     private DenoiserAlgorithm denoiserAlgorithm;
-    private Clearance clearance;
     private ClassifierAlgorithm classifierAlgorithm;
-    private Classifier classifier;
+    private ClassifierShader classifierShader;
     private DetectionAlgorithm detectionAlgorithm;
-    private Detection detection;
+    private DetectionShader detectionShader;
+    private Precision precision;
     private boolean temporalFilter;
     private StyleTransfer styleTransferAlgorithm;
 
@@ -75,14 +67,13 @@ public class AlgorithmConfig {
     }
 
     private void init() {
-        pipeline = Pipeline.CLEARANCE1FRAME;
         denoiserAlgorithm = DenoiserAlgorithm.NONE;
-        denoiser = Denoiser.FRAGMENTSHADER;
-        clearance = Clearance.NONE;
+        denoiserShader = DenoiserShader.FRAGMENTSHADER;
         classifierAlgorithm = ClassifierAlgorithm.NONE;
-        classifier = Classifier.FRAGMENTSHADER;
+        classifierShader = ClassifierShader.FRAGMENTSHADER;
         detectionAlgorithm = DetectionAlgorithm.NONE;
-        detection = Detection.FRAGMENTSHADER;
+        detectionShader = DetectionShader.FRAGMENTSHADER;
+        precision = Precision.FP32;
         styleTransferAlgorithm = StyleTransfer.NONE;
         temporalFilter = false;
     }
@@ -100,56 +91,27 @@ public class AlgorithmConfig {
         return classifierOutput;
     }
 
-    public void setPipeline(Pipeline pipeline) {
-        this.pipeline = pipeline;
-    }
-
-    public Pipeline getPipeline() {
-        return this.pipeline;
-    }
-
     void setDenoiserAlgorithm(DenoiserAlgorithm denoiserAlgorithm) {
         this.denoiserAlgorithm = denoiserAlgorithm;
     }
 
-    public Denoiser getDenoiser() {
-        return this.denoiser;
+    public void setDenoiser(DenoiserShader denoiserShader) {
+        this.denoiserShader = denoiserShader;
     }
 
-    public DenoiserAlgorithm getDenoiserAlgorithm() {
-        return  this.denoiserAlgorithm;
-    }
+    public boolean isDenoiseSPATIALDENOISER() {return  denoiserAlgorithm == DenoiserAlgorithm.SPATIALDENOISER; }
 
-    void setStyleTransferAlgorithm(StyleTransfer styleTransferAlgorithm) {
-        this.styleTransferAlgorithm = styleTransferAlgorithm;
-    }
-
-    void setSSBO(boolean ssbo) {
-        //this.ssbo = ssbo;
-    }
-
-    public void setClearance(Clearance clearance) {
-        this.clearance = clearance;
-    }
-
-    public Clearance getClearance() {
-        return this.clearance;
+    public boolean isDenoiseComputeShader() {
+        return denoiserShader == DenoiserShader.COMPUTESHADER;
     }
 
     void setTemporalFilter(boolean temporalFilter) {
         this.temporalFilter = temporalFilter;
     }
 
-    public boolean getTemporalFilter() {
-        return this.temporalFilter;
+    void setStyleTransferAlgorithm(StyleTransfer styleTransferAlgorithm) {
+        this.styleTransferAlgorithm = styleTransferAlgorithm;
     }
-
-    public boolean isDenoiseNONE() {
-        return denoiserAlgorithm == DenoiserAlgorithm.NONE;
-    }
-
-    public boolean isDenoiseSPATIALDENOISER() {return  denoiserAlgorithm == DenoiserAlgorithm.SPATIALDENOISER; }
-
     public boolean isStyleTransferNONE() { return styleTransferAlgorithm == StyleTransfer.NONE; }
 
     public boolean isStyleTransferCANDY() { return styleTransferAlgorithm == StyleTransfer.CANDY; }
@@ -162,19 +124,13 @@ public class AlgorithmConfig {
 
     public boolean isStyleTransferUDNIE() { return  styleTransferAlgorithm == StyleTransfer.UDNIE; }
 
-    public ClassifierAlgorithm getClassifierAlgorithm() {return classifierAlgorithm;}
-
     public void setClassifierAlgorithm(ClassifierAlgorithm classifierAlgorithm) {
         this.classifierAlgorithm = classifierAlgorithm;
         this.classifierIndex = 0;
     }
 
-    public Classifier getClassifier() {
-        return classifier;
-    }
-
-    public void setClassifier(Classifier classifier) {
-        this.classifier = classifier;
+    public void setClassifier(ClassifierShader classifierShader) {
+        this.classifierShader = classifierShader;
         this.classifierIndex = 0;
     }
 
@@ -190,27 +146,35 @@ public class AlgorithmConfig {
         return this.classifierAlgorithm == ClassifierAlgorithm.MOBILENETV2;
     }
 
-    public DetectionAlgorithm getDetectionAlgorithm() {
-        return this.detectionAlgorithm;
+    public boolean isClassifierComputeShader() {
+        return this.classifierShader == ClassifierShader.COMPUTESHADER;
     }
 
     public void setDetectionAlgorithm(DetectionAlgorithm detectionAlgorithm) {
         this.detectionAlgorithm = detectionAlgorithm;
     }
 
-    public Detection getDetection() {
-        return detection;
+    public void setDetection(DetectionShader detectionShader) {
+        this.detectionShader = detectionShader;
     }
 
-    public void setDetection(Detection detection) {
-        this.detection = detection;
-    }
-
-    public boolean isDetectionNONE() {
-        return this.detectionAlgorithm == DetectionAlgorithm.NONE;
+    public void setPrecision(Precision precision) {
+        this.precision = precision;
     }
 
     public boolean isDetectionYolov3() {
         return this.detectionAlgorithm == DetectionAlgorithm.YOLOV3;
+    }
+
+    public boolean isDetectionComputeShader() {
+        return this.detectionShader == DetectionShader.COMPUTESHADER;
+    }
+
+    public Precision getPrecision() {
+        return precision;
+    }
+
+    public boolean isFP16() {
+        return this.precision == Precision.FP16;
     }
 }

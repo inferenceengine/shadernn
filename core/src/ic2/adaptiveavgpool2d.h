@@ -14,18 +14,11 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "snn/utils.h"
+#include "modelparser.h"
+#include <string>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -39,30 +32,5 @@ struct AdaptiveAvgPool2dDesc : GenericConvDesc {
     }
 };
 
-class AdaptiveAvgPool2dLayer : public GenericConvolutionLayer {
-public:
-    AdaptiveAvgPool2dLayer(AdaptiveAvgPool2dDesc&& d): GenericConvolutionLayer(d), _desc(std::move(d)) {}
-    ~AdaptiveAvgPool2dLayer() {}
-    InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
-
-    virtual void setStride(uint32_t inputSize) override { this->_desc.stride = inputSize / _desc.targetSize; }
-
-protected:
-    GLSLShaders createFS(const LayerGenOptions&) const override;
-    GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
-    AdaptiveAvgPool2dDesc _desc;
-    void buildPreDefine(std::ostringstream& stream, const LayerGenOptions& options, const std::string& shaderFilePath) const;
-
-    void buildTextureDefLogic(std::ostream& stream, const LayerGenOptions&, uint32_t inputSliceIndex) const;
-
-    void buildCalcDefLogic(std::ostream& stream, const LayerGenOptions& options) const;
-
-    void buildComputePostDefine(std::ostream& stream, uint32_t outputSliceIndex) const;
-
-    void buildFragPostDefine(std::ostream& stream) const;
-};
-
-}; // namespace dp
+} // namespace dp
 } // namespace snn

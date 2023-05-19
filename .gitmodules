@@ -1,0 +1,12 @@
+[submodule "core/3rdparty/volk"]
+	path = core/3rdparty/volk
+	url = https://github.com/zeux/volk
+[submodule "core/3rdparty/third_party/abseil-cpp"]
+	path = core/3rdparty/third_party/abseil-cpp
+	url = https://github.com/abseil/abseil-cpp.git
+[submodule "core/3rdparty/third_party/SPIRV-Reflect"]
+	path = core/3rdparty/third_party/SPIRV-Reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
+[submodule "core/3rdparty/third_party/benchmark"]
+	path = core/3rdparty/third_party/benchmark
+	url = https://github.com/google/benchmark.git

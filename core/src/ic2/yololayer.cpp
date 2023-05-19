@@ -13,17 +13,19 @@
  * limitations under the License.
  */
 #include "pch.h"
-#include "dp.h"
-#include <cstring>
-#include <algorithm>
-#include <fstream>
-#include <ios>
+#include "yololayer.h"
+#include "layerFactory.h"
+#include "snn/imageTexture.h"
+#include <string>
+#include <vector>
+#include <memory>
+#include <cmath>
+#include <exception>
+#include <utility>
 
 using namespace std;
 using namespace snn;
 using namespace snn::dp;
-
-// DECLARE_LAYER(YOLO);
 
 // Parameters for YOLO V3 Tiny layer
 static const int32_t YOLOGridScale[]   = {32, 16};
@@ -129,17 +131,11 @@ static bool getBoundingBox(const float* data, float scaleX, float scaleY, int32_
                     }
                 }
 
-                // printf("Index %d:%d:%d, original: %f, %f, %f, %f - %f, %f, index:%d\n", gridY, gridX, gridC,
-                //     data[index + 0], data[index + 1], data[index + 2], data[index + 3], data[index + 4], data[index + 5], index);
-
                 int anchorIndex        = static_cast<int>(YOLOv3TinyMasks[gridC + yoloIdx * YOLOGridChannel]);
                 const float biasWidth  = YOLOv3TinyAnchors[anchorIndex * 2];
                 const float biasHeight = YOLOv3TinyAnchors[anchorIndex * 2 + 1];
 
                 float maxClsProb = 1.f / ((1.f + exp(-data[index + 4]) * (1.f + exp(-maxClsLogit))));
-
-                // printf("Index %d:%d:%d, calc: %d, %f, %f, net: %d, %d\n", gridY, gridX, gridC,
-                //     biases_index, bias_w, bias_h, net_w, net_h);
 
                 if (maxClsProb > boxConfidence) {
                     // scaleXY in YOLO v4
@@ -147,8 +143,6 @@ static bool getBoundingBox(const float* data, float scaleX, float scaleY, int32_
                     // float cy = (gridY + scaleSigmoidStd(data[index + 1], scaleXY)) / grid_h;
                     float cx = (gridX + sigmoidStd(data[index + 0])) / gridWidth;
                     float cy = (gridY + sigmoidStd(data[index + 1])) / gridHeight;
-
-                    // printf("Index %d:%d:%d, cx: %f-%f, cy: %f-%f\n", gridY, gridX, gridC, sigmoidGPU(data[index + 0]), cx, sigmoidGPU(data[index + 1]), cy);
 
                     float w_ = std::exp(data[index + 2]) * biasWidth / netWidth;
                     float h_ = std::exp(data[index + 3]) * biasHeight / netHeight;
@@ -180,8 +174,7 @@ void snn::dp::YOLODesc::parse(ModelParser& parser, int layerId) {
     }
 }
 
-void snn::dp::YOLOLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture>& inputTex, FixedSizeArray<snn::ImageTexture>& outputTex) {
-    printf("%%%%%%%% %s:%d %zu\n", __FUNCTION__, __LINE__, inputTex.size());
+void snn::dp::YOLOLayer::computeImageTexture(snn::ImageTextureArray& inputTex, snn::ImageTextureArray& outputTex) {
     int32_t imgWidth          = 416;
     int32_t imgHeight         = 416;
     int32_t inputWidth        = 416;
@@ -190,31 +183,31 @@ void snn::dp::YOLOLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture>& 
     float iouThreshold        = 0.45f;
     std::vector<BoundingBox> bboxList;
     int index = 0;
+    // snn::ImageTextureGLArrayAccessor inputTexGL = inputTex;
     for (const auto& gridScale : YOLOGridScale) {
         int32_t gridWidth  = inputWidth / gridScale;
         int32_t gridHeight = inputHeight / gridScale;
         float scaleX       = static_cast<float>(gridScale) * imgWidth / inputWidth; /* scale to original image */
         float scaleY       = static_cast<float>(gridScale) * imgHeight / inputHeight;
 
-        uint32_t texWidth  = inputTex[index].texture(0)->getDesc().width;
-        uint32_t texHeight = inputTex[index].texture(0)->getDesc().height;
-        uint32_t texDepth  = inputTex[index].texture(0)->getDesc().depth;
-        printf("%%%%%%%% %s:%d %d dim: %d, %d, %d\n", __FUNCTION__, __LINE__, index, texWidth, texHeight, texDepth);
+        uint32_t texWidth  = inputTex[index].width();
+        uint32_t texHeight = inputTex[index].height();
+        uint32_t texDepth  = inputTex[index].depth();
+
+        SNN_LOGD("%d dim: %d, %d, %d", index, texWidth, texHeight, texDepth);
 
         int numPixels = texWidth * texHeight * texDepth * 4;
         uint8_t* ret  = (uint8_t*) malloc(numPixels * sizeof(float));
-        // std::vector<uint8_t> ret(numPixels);
-        inputTex[index].download();
         inputTex[index].getCVMatData(ret);
-        printf("scaleX:%f, scaleY:%f, gridWidth: %d, gridHeight:%d\n", scaleX, scaleY, gridWidth, gridHeight);
+        SNN_LOGD("scaleX:%f, scaleY:%f, gridWidth: %d, gridHeight:%d", scaleX, scaleY, gridWidth, gridHeight);
         getBoundingBox((float*) ret, scaleX, scaleY, gridWidth, gridHeight, bboxList, confidenceThreshold, index);
 
         free(ret);
         index += 1;
     }
-    printf("Before NMS Res: %zu\n", bboxList.size());
+    SNN_LOGD("Before NMS Res: %zu", bboxList.size());
     for (auto& box : bboxList) {
-        printf("Bounding box: %d,  score: %f, coord: %f, %f, %f, %f\n", box.classId, box.score, box.fx, box.fy, box.fw, box.fh);
+        SNN_LOGD("Bounding box: %d,  score: %f, coord: %f, %f, %f, %f", box.classId, box.score, box.fx, box.fy, box.fw, box.fh);
     }
 
     std::vector<BoundingBox> nmsResult;
@@ -222,14 +215,12 @@ void snn::dp::YOLOLayer::computeImageTexture(FixedSizeArray<snn::ImageTexture>& 
 
     vector<vector<float>> vec; //(nmsResult.size(), vector<float>(6));
 
-    printf("After NMS Res: %zu\n", nmsResult.size());
+    SNN_LOGD("After NMS Res: %zu", nmsResult.size());
     for (auto& box : nmsResult) {
-        printf("Bounding box: %d,  score: %f, coord: %f, %f, %f, %f\n", box.classId, box.score, box.fx, box.fy, box.fw, box.fh);
+        SNN_LOGD("Bounding box: %d,  score: %f, coord: %f, %f, %f, %f", box.classId, box.score, box.fx, box.fy, box.fw, box.fh);
         vector<float> v {(float) box.classId, box.score, box.fx, box.fy, box.fw, box.fh};
         vec.push_back(v);
     }
 
-    outputTex[0].outputMat = vec;
-
-    printf("%%%%%%%% %s:%d :%s\n", __FUNCTION__, __LINE__, name.c_str());
+    outputTex[0].setOutputMat(vec);
 }

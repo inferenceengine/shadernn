@@ -37,9 +37,14 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
-static int test_activation(int w, int h, int c, std::string activation, float leaky_value) {
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
+
+static int test_activation(int w, int h, int c, const std::string& activation, float leaky_value, snn::GpuBackendType backend, bool printMismatch) {
     ncnn::Mat matA = RandomMat(w, h, c);
-    pretty_print_ncnn(matA);
 
     ncnn::Mat resNCNN;
     ncnn::ParamDict pd;
@@ -63,7 +68,7 @@ static int test_activation(int w, int h, int c, std::string activation, float le
     if (!activation.compare("leakyRelu")) {
         if (leaky_value > 1) {
             fprintf(stderr, "leaky_value = %f out of range (-inf, 1)\n", leaky_value);
-            exit(EXIT_FAILURE);
+            return EXIT_FAILURE;
         }
         pd.set(0, leaky_value);
         ret = test_layer_naive<ncnn::ReLU>(ncnn::layer_to_index("ReLU"), pd, weights, matA, resNCNN, (void (*)(ncnn::ReLU*)) 0, 0);
@@ -76,30 +81,39 @@ static int test_activation(int w, int h, int c, std::string activation, float le
         fprintf(stderr, "test_concate failed a.dims=%d a=(%d %d %d)\n", matA.dims, matA.w, matA.h, matA.c);
     }
 
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    ShaderUnitTest test;
+    ShaderUnitTest test(backend);
 
     cv::Mat inputMat = NCNNMat2CVMat(matA);
     auto outFile     = test.snnActivationTestWithLayer(inputMat, w, h, c, 1, 1, activation, leaky_value);
-
     printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
+
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, c);
 
-    SNN_LOGI("\n\nNCNN output");
-    pretty_print_ncnn(resNCNN);
-    SNN_LOGI("\n\nSNN output");
-    pretty_print_ncnn(snnOutput);
-
     ret = CompareMat(resNCNN, snnOutput, 0.001);
-    printf("test_activation test res: %d\n", ret);
+    printf("\nactivation test, res: %d\n\n", ret);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(resNCNN);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
     return ret;
 }
 
-int main() {
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    test_activation(2, 2, 4, "leakyRelu", -5);
+    bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    test_activation(16, 16, 4, "SiLU", -5, backend, printMismatch);
 
     return 0;
 }

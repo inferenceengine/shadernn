@@ -4,6 +4,8 @@
 .idea/
 snn-core-install
 core/build/
+core/data/assets/shaders/*.spv
+core/config.txt
 demo/build-test
 tools/convertTool/argParser/__pycache__/
 tools/convertTool/config/__pycache__/

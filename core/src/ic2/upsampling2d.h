@@ -14,25 +14,18 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
 struct UpSampling2DDesc : CommonLayerDesc {
     float scale;
-    string interpolationType;
+    std::string interpolationType;
     void parse(ModelParser& parser, int layerId) {
         CommonLayerDesc::parse(parser, layerId);
         scale             = parser.getUpSamplingScale(layerId);
@@ -43,18 +36,15 @@ struct UpSampling2DDesc : CommonLayerDesc {
 class UpSampling2DLayer : public ShaderLayer {
 public:
     UpSampling2DLayer(UpSampling2DDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
-    ~UpSampling2DLayer() {}
-    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
+    virtual ~UpSampling2DLayer() = default;
+    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override {
+        return {0, {{ static_cast<float>(_desc.scale), static_cast<float>(_desc.scale), 0.0f, 0.0f}}
+    };
+}
 
 protected:
-    bool generateUpSampling2DGLSamplingCode(int& idxStartPlane, int nOutputChannels, std::string& uniformsDeclaration, std::string& calculation,
-                                            const bool& compute) const;
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
     UpSampling2DDesc _desc;
 };
 
-}; // namespace dp
+} // namespace dp
 } // namespace snn

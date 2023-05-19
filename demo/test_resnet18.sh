@@ -13,35 +13,43 @@
 # limitations under the License.
 
 #!/bin/bash
+set -e
 
-./build-tests.sh clean
-./build-tests.sh linux
+if [ -z  "$NO_REBUILD_IN_TESTS" ]; then
+  ./build-tests.sh clean
+  ./build-tests.sh linux
+fi
 
 cd build-test/test/unittest/
 
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --dump_outputs resnet18
+./resnet18Test --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_compute 0 1
-./resnet18Test --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_vulkan --dump_outputs resnet18
+./resnet18Test --stop_on_mismatch --use_vulkan
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_compute --use_half 0 1
-./resnet18Test --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_vulkan --use_half --dump_outputs resnet18
+./resnet18Test --use_half --stop_on_mismatch --use_vulkan
 
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --use_half --dump_outputs resnet18
+./resnet18Test --use_half --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_1ch_mrt 0 1
-./resnet18Test --use_1ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest  --use_1ch_mrt --dump_outputs resnet18
+./resnet18Test --use_1ch_mrt --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_1ch_mrt --use_half 0 1
-./resnet18Test --use_1ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_half --use_1ch_mrt --dump_outputs resnet18
+./resnet18Test --use_1ch_mrt --use_half --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest 0 1
-./resnet18Test --use_2ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_2ch_mrt --dump_outputs resnet18
+./resnet18Test --use_2ch_mrt --stop_on_mismatch
 
-#if [ 1 -eq 0 ]; then
-#fi
+echo "done"
 
 cd ../../../

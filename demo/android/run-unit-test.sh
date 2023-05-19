@@ -33,4 +33,7 @@ fi
 
 ${ROOT}/gradlew installDebugAndroidTest
 
-adb shell am instrument -w -e class com.oppo.seattle.snndemo.NativeTests#$1 com.innopeaktech.seattle.snndemo.test/androidx.test.runner.AndroidJUnitRunner
+num_loops=$2
+num_loops=${num_loops:=1}
+
+adb shell am instrument -w -e class com.oppo.seattle.snndemo.NativeTests#$1 -e num_loops $num_loops com.innopeaktech.seattle.snndemo.test/com.oppo.seattle.snndemo.CustomInstrumentationRunner

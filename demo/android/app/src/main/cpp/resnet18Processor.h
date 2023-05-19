@@ -15,47 +15,30 @@
 #pragma once
 
 #include "processor.h"
-#include <snn/texture.h>
-#include <opencv2/core/mat.hpp>
-#include <string>
-#include "ic2/core.h"
+#include "modelProcessorParams.h"
 
-static constexpr const char* RESNET18_MODEL_NAME = "resnet18_cifar10.json";
+#include <string>
+
+static constexpr const char* RESNET18_MODEL_NAME = "Resnet18/resnet18_cifar10.json";
 
 namespace snn {
-class ResNet18Processor : public Processor {
+
+class ResNet18Processor : public Processor, protected ModelProcessorParams {
 public:
-    ~ResNet18Processor() override = default;
-    void submit(Workload& w) override;
+    ~ResNet18Processor() = default;
 
-    static constexpr const char* defaultResNet18Model() { return RESNET18_MODEL_NAME; }
-
-    static std::unique_ptr<ResNet18Processor> createResNet18Processor(ColorFormat format, bool compute = false, bool dumpOutputs = false) {
-        return std::unique_ptr<ResNet18Processor>(new ResNet18Processor(format, defaultResNet18Model(), compute, dumpOutputs));
-    }
+    static std::unique_ptr<ResNet18Processor> createResNet18Processor(ColorFormat format, Precision precision, bool compute = false, bool dumpOutputs = false);
 
     std::string getModelName() override { return "ResNet18 Model"; }
 
-private:
-    std::shared_ptr<MixedInferenceCore> ic2_;
-    std::unordered_map<GLuint, std::shared_ptr<Texture>> frameTextures_;
-    std::string modelFileName_;
-    bool compute_;
-    bool dumpOutputs;
+    static const uint32_t MODEL_IMAGE_WIDTH = 32;
+    static const uint32_t MODEL_IMAGE_HEIGHT = 32;
 
-    const std::size_t expectedHeight = 32;
-    const std::size_t expectedWidth  = 32;
-
-    ResNet18Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute), dumpOutputs(dumpOutputs) {}
-
-    gl::TextureObject* getFrameTexture(GLuint id) {
-        auto& t = frameTextures_[id];
-        // Create a thin shell around textureId
-        if (!t) {
-            t = Texture::createAttached(GL_TEXTURE_2D, id);
-        }
-        return t.get();
-    }
+protected:
+    ResNet18Processor(ColorFormat format, Precision precision, bool compute, bool dumpOutputs)
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}})
+        , ModelProcessorParams(RESNET18_MODEL_NAME, {MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, 1, 4}, precision, compute, dumpOutputs)
+    {}
 };
+
 } // namespace snn

@@ -1,7 +1,7 @@
 #ifndef SNNDEMO_BOUNDINGBOXUTIL_H
 #define SNNDEMO_BOUNDINGBOXUTIL_H
 
-#include <glad/glad.h>
+#include "glUtils.h"
 
 class BoundingBoxUtil {
 private:
@@ -26,10 +26,10 @@ private:
                                        "}\n\0";
     gl::SimpleGlslProgram _rectangleProgram = gl::SimpleGlslProgram("rectangleProgram");
     unsigned int indices[8] = {
-            0,1,
-            1,2,
-            2,3,
-            3,0
+            0, 1,
+            1, 2,
+            2, 3,
+            3, 0
     };
 
     void prepareFrame(GLenum target, GLuint id) {
@@ -42,7 +42,7 @@ private:
     float *prepareCoordinates(float *vertices) {
         return new float[] {
                 //clock-wise , 0,0 is at center
-                vertices[0],vertices[1],  //TopLeft
+                vertices[0], vertices[1],  //TopLeft
                 vertices[2], vertices[1], //TopRight
                 vertices[2], vertices[3], //BottomRight
                 vertices[0], vertices[3]  //BottomLeft
@@ -50,9 +50,8 @@ private:
     }
 
 public:
-
     BoundingBoxUtil() {
-        _rectangleProgram.loadVsPs(vertexShaderSource,fragmentShaderSource);
+        _rectangleProgram.loadVsPs(vertexShaderSource, fragmentShaderSource);
     }
 
     ~BoundingBoxUtil() {
@@ -62,14 +61,14 @@ public:
     void drawBoundingBox(GLenum target, GLuint id, float *vertices) {
         // Set the viewport as it gets altered by inference engine.
         glViewport(0, 0, widthDim, heightDim);
-        prepareFrame(target,id);
+        prepareFrame(target, id);
         float *coordinates = prepareCoordinates(vertices);
-        unsigned int VBO,EBO;
+        unsigned int VBO, EBO;
         glGenBuffers(1, &VBO);
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(coordinates[0]), coordinates, GL_STATIC_DRAW);
 
-        glGenBuffers(1,&EBO);
+        glGenBuffers(1, &EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 

@@ -14,16 +14,19 @@
  */
 
 #include "../pch.h"
+#include "inferenceengine.h"
 #include "demoutils.h"
 #include <iostream>
+#include <strstream>
+#include <memory>
+#include <atomic>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
-#include <stb_image.h>
+#include <chrono>
+#include <cstddef>
 
 using namespace snn;
 
+// General rendering pipeline implementation
 class MainProcessingLoop::Impl
 {
     std::unique_ptr<NightVisionFrameViz> _viz;
@@ -33,27 +36,21 @@ class MainProcessingLoop::Impl
     std::unique_ptr<InferenceEngine> _inferenceEngine;
     CreationParamaters _cp;
     Timer _frameTime  = Timer("Total frame time.");
-    Timer _renderTime = Timer("Main rendering loop");
-    Timer _fetchDataTime = Timer("Main rendering loop - fetch frame data");
-    Timer _processTime = Timer("Main rendering loop - engine process");
-    Timer _autoFrameSetInitTime = Timer("Main rendering loop - retrieve frames");
 
-    void switchEngineTo(InferenceEngine::AlgorithmConfig a) {
+    bool switchEngineTo(InferenceEngine::AlgorithmConfig a) {
         if (_inferenceEngine && _algorithm == a) {
-            return; // check for redundant switch
+            return false; // check for redundant switch
         }
         _algorithm = a;
         _inferenceEngine.reset(InferenceEngine::createInstance({a, _cp.windowWidth, _cp.windowHeight, _cp.serialized, _cp.compute }));
 
-        //if(_algorithm.denoisers->denoiser == InferenceEngine::AlgorithmConfig::Denoisers::Denoiser::COMPUTESHADER){
-        //    _inferenceEngine.reset(InferenceEngine::createInstance({a, _cp.windowWidth, _cp.windowHeight, _cp.serialized, true }));
-        //}
-        //else{
-        //    _inferenceEngine.reset(InferenceEngine::createInstance({a, _cp.windowWidth, _cp.windowHeight, _cp.serialized, false }));
-        //}
+        return true;
     }
 
 public:
+    // Constructor
+    // params:
+    //  cp - creation parameters
     Impl(const CreationParamaters & cp)
     {
         _cp = cp;
@@ -68,44 +65,54 @@ public:
     {
     }
 
+    // This method is not currently used
     void startRecording(intptr_t window) {
         _rec->setWindow(window);
         _isRecording = true;
     }
 
+    // This method is not currently used
     void stopRecording() {
         _isRecording = false;
     }
 
+    // Main rendering loop implementation
+    // params:
+    //  rp - render parameters
     void render(RenderParameters & rp) {
-        // this timer will count the whole frame time, including time that is not part of this render funcion.
-        _frameTime.stop();
-        _frameTime.start();
+        // this timer will count the whole frame time, including time that is not part of this render function.
+        static bool firstStart = true;
+        if (firstStart) {
+            _frameTime.start();
+            firstStart = false;
+        }
 
         {
-        ScopedTimer strt(_renderTime);
+        PROFILE_TIME(Render, "Main rendering loop")
 
-        switchEngineTo(rp.algorithm);
-
-        // InferenceEngine* engine = _inferenceEngine.get();
+        if (switchEngineTo(rp.algorithm)) {
+            _viz->reset();
+        }
 
         // issue new work to engine
-        _autoFrameSetInitTime.start();
-        while (!_inferenceEngine) {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(10)
-            );
+        InferenceEngine::Item inputs;
+        {
+            PROFILE_TIME(AutoFrameSetInit, "Main rendering loop - retrieve frames")
+            while (!_inferenceEngine) {
+                std::this_thread::sleep_for(
+                    std::chrono::milliseconds(10)
+                );
+            }
+            inputs = _inferenceEngine->beginEnqueue();
         }
-        InferenceEngine::Item inputs = _inferenceEngine->beginEnqueue();
-        _autoFrameSetInitTime.stop();
         if (!inputs.frames.empty()) {
             bool frameAvailable;
             {
-                ScopedTimer st(_fetchDataTime);
+                PROFILE_TIME(FetchData, "Main rendering loop - fetch frame data")
                 frameAvailable = _cp.frameProvider->fetchData(inputs.frames);
             }
             {
-                ScopedTimer st(_processTime);
+                PROFILE_TIME(Process, "Main rendering loop - engine process")
                 if (frameAvailable) {
                     _inferenceEngine->endEnqueue();
                 } else {
@@ -127,52 +134,49 @@ public:
         if (!output.tensors.empty()) {
             for (auto Blob : output.tensors) {
                 for (auto batch : Blob) {
-                    SNN_LOGI("[");
+                    SNN_LOGD("[");
                     for (std::size_t outputIdx = 0; outputIdx < batch.size(); outputIdx++) {
-                        SNN_LOGI("\t%f", batch.at(outputIdx));
+                        SNN_LOGD("\t%f", batch.at(outputIdx));
                     }
-                    SNN_LOGI("]");
+                    SNN_LOGD("]");
                 }
             }
         }
 
-        if (rp.modelType == InferenceEngine::ModelType::CLASSIFICATION) {
+        if (rp.modelType == ModelType::CLASSIFICATION) {
             rp.modelOutput.classifierOutput = output.snnModelOutput.classifierOutput;
-        } else if (rp.modelType == InferenceEngine::ModelType::DETECTION) {
+        } else if (rp.modelType == ModelType::DETECTION) {
         } else {
         }
         }
 
+        _frameTime.stop();
         SNN_LOG_EVERY_N_SEC(5, INFO, printKeyRenderLoopTimings().c_str());
+        _frameTime.start();
     }
 
-
+    // Resizes the output surface
+    // params:
+    //  w - resized width
+    //  h - resized height
     void resize(uint32_t w, uint32_t h)
     {
         _viz->resize(w, h);
         _rec->resize(w, h);
     };
 
-    std::string printKeyRenderLoopTimings() const
+    // Prints main rendering timing statistics
+    // returns:
+    //  Timing statistics in human-readable format
+    std::string printKeyRenderLoopTimings()
     {
-        size_t namelen = _frameTime.name.size();
-        for (auto & c : _frameTime.children) {
-            namelen = std::max(namelen, c->name.size() + 2);
-        }
-
-        std::vector<Timer*> sorted(_frameTime.children.begin(), _frameTime.children.end());
-        std::sort(sorted.begin(), sorted.end(), [](Timer* a, Timer* b){
-            return a->begin < b->begin;
-        });
-
         std::stringstream ss;
-        ss << "\n";
+        ss << std::endl;
         ss << "===========================  Key Render Loop Time Stats ==========================\n";
-        ss << _frameTime.print(namelen + 2) << std::endl;
-        for (auto & c : sorted) {
-            ss << "  " << c->print(namelen, &_frameTime) << std::endl;
-        }
+        ss << Timer::print(10, true);
         ss << "==================================================================================\n";
+        // We collect timing statistics between calls, not over total app life
+        Timer::reset();
         return ss.str();
     }
 };
@@ -186,20 +190,29 @@ snn::MainProcessingLoop::~MainProcessingLoop()
     delete _impl;
 }
 
+// Main rendering loop implementation
+// params:
+//  rp - render parameters
 void snn::MainProcessingLoop::render(RenderParameters & rp)
 {
     _impl->render(rp);
 }
 
+// Resizes the output surface
+// params:
+//  w - resized width
+//  h - resized height
 void snn::MainProcessingLoop::resize(uint32_t w, uint32_t h)
 {
     _impl->resize(w, h);
 }
 
+// This method is not currently used
 void snn::MainProcessingLoop::startRecording(intptr_t window) {
     _impl->startRecording(window);
 }
 
+// This method is not currently used
 void snn::MainProcessingLoop::stopRecording() {
     _impl->stopRecording();
 }

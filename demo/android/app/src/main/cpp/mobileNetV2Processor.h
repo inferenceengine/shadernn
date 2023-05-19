@@ -15,48 +15,31 @@
 #pragma once
 
 #include "processor.h"
-#include <snn/texture.h>
-#include <opencv2/core/mat.hpp>
-#include <string>
-#include "ic2/core.h"
+#include "modelProcessorParams.h"
 
-static constexpr const char* MOBILENETV2_MODEL_NAME = "mobilenetV2.json";
+#include <string>
+
+static constexpr const char* MOBILENETV2_MODEL_NAME = "MobileNetV2/mobilenetV2.json";
 
 namespace snn {
-class MobileNetV2Processor : public Processor {
+
+class MobileNetV2Processor : public Processor, protected ModelProcessorParams {
 public:
-    ~MobileNetV2Processor() override = default;
-    void submit(Workload& w) override;
+    ~MobileNetV2Processor() = default;
 
-    static constexpr const char* defaultMobileNetV2Model() { return MOBILENETV2_MODEL_NAME; }
-
-    static std::unique_ptr<MobileNetV2Processor> createMobileNetV2Processor(ColorFormat format, bool compute = false, bool dumpOutputs = false) {
-        return std::unique_ptr<MobileNetV2Processor>(new MobileNetV2Processor(format, defaultMobileNetV2Model(), compute, dumpOutputs));
-    }
+    static std::unique_ptr<MobileNetV2Processor> createMobileNetV2Processor(ColorFormat format, Precision precision,
+        bool compute = false, bool dumpOutputs = false);
 
     std::string getModelName() override { return "MobileNetV2 Model"; }
 
-private:
-    std::shared_ptr<MixedInferenceCore> ic2_;
-    std::unordered_map<GLuint, std::shared_ptr<Texture>> frameTextures_;
-    std::string modelFileName_;
-    bool compute_;
-    bool dumpOutputs;
+    static const std::size_t MODEL_IMAGE_WIDTH = 224;
+    static const std::size_t MODEL_IMAGE_HEIGHT  = 224;
 
-    const std::size_t expectedHeight = 224;
-    const std::size_t expectedWidth  = 224;
-
-    MobileNetV2Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute),
-          dumpOutputs(dumpOutputs) {}
-
-    gl::TextureObject* getFrameTexture(GLuint id) {
-        auto& t = frameTextures_[id];
-        // Create a thin shell around textureId
-        if (!t) {
-            t = Texture::createAttached(GL_TEXTURE_2D, id);
-        }
-        return t.get();
-    }
+protected:
+    MobileNetV2Processor(ColorFormat format, Precision precision, bool compute, bool dumpOutputs)
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}})
+        , ModelProcessorParams(MOBILENETV2_MODEL_NAME, {MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, 1, 4}, precision, compute, dumpOutputs)
+    {}
 };
+
 } // namespace snn

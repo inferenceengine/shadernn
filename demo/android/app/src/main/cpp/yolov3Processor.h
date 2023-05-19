@@ -15,45 +15,34 @@
 #pragma once
 
 #include "processor.h"
-#include <snn/texture.h>
-#include <opencv2/core/mat.hpp>
-#include <string>
-#include "ic2/core.h"
+#include "modelProcessorParams.h"
 
-static constexpr const char* YOLOV3_MODEL_NAME = "yolov3-tiny_finetuned.json";
+#include <memory>
+#include <string>
+#include <vector>
+
+static constexpr const char* YOLOV3_MODEL_NAME = "Yolov3-tiny/yolov3-tiny_finetuned.json";
 
 namespace snn {
-class Yolov3Processor : public Processor {
+
+class Yolov3Processor : public Processor, protected ModelProcessorParams {
 public:
-    ~Yolov3Processor() override = default;
-    static constexpr const char* defaultYolov3Model() { return YOLOV3_MODEL_NAME; }
-    void submit(Workload& w) override;
-    static std::unique_ptr<Yolov3Processor> createYolov3Processor(ColorFormat format, bool compute = false, bool dumpOutputs = false) {
-        return std::unique_ptr<Yolov3Processor>(new Yolov3Processor(format, defaultYolov3Model(), compute, dumpOutputs));
-    }
+    virtual ~Yolov3Processor() = default;
+    static std::unique_ptr<Yolov3Processor> createYolov3Processor(ColorFormat format, Precision precision, bool compute = false, bool dumpOutputs = false);
 
     std::string getModelName() override { return "Yolov3 Model"; }
 
-private:
-    std::unique_ptr<MixedInferenceCore> ic2_;
-    std::unordered_map<GLuint, std::shared_ptr<Texture>> frameTextures_;
-    std::string modelFileName_;
-    bool compute_;
-    bool dumpOutputs;
+    static const uint32_t MODEL_IMAGE_WIDTH = 416;
+    static const uint32_t MODEL_IMAGE_HEIGHT = 416;
 
-    const std::size_t expectedHeight = 416;
-    const std::size_t expectedWidth  = 416;
+    static void getBBoxesCoords(const std::vector<float>& boxDetails, std::vector<float>& coords);
 
-    Yolov3Processor(ColorFormat format, const std::string& modelFilename, bool compute, bool dumpOutputs)
-        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}}), modelFileName_(modelFilename), compute_(compute), dumpOutputs(dumpOutputs) {}
-
-    gl::TextureObject* getFrameTexture(GLuint id) {
-        auto& t = frameTextures_[id];
-        // Create a thin shell around textureId
-        if (!t) {
-            t = Texture::createAttached(GL_TEXTURE_2D, id);
-        }
-        return t.get();
-    }
+protected:
+    Yolov3Processor(ColorFormat format, Precision precision, bool compute, bool dumpOutputs)
+        : Processor({{Device::GPU, format, 1}, {Device::GPU, format, 1}})
+        , ModelProcessorParams(YOLOV3_MODEL_NAME, {MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, 1, 4}, precision, compute, dumpOutputs)
+    {}
 };
+
 } // namespace snn
+

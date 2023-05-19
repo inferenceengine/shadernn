@@ -13,19 +13,31 @@
 # limitations under the License.
 
 #!/bin/bash
+set -e
 
-./build-tests.sh clean
-./build-tests.sh linux
+if [ -z  "$NO_REBUILD_IN_TESTS" ]; then
+    ./build-tests.sh clean
+    ./build-tests.sh linux
+fi
 
 cd build-test/test/unittest/
 
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --dump_outputs styletransfer
+./styleTransferTest --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --use_half --dump_outputs styletransfer
+./styleTransferTest --use_half --stop_on_mismatch
 
-./inferenceProcessorTest --use_compute 6 1
-./styleTransferTest --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_vulkan --dump_outputs styletransfer
+./styleTransferTest --stop_on_mismatch --use_vulkan
 
-./inferenceProcessorTest --use_compute --use_half 6 1
-./styleTransferTest --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_vulkan --use_half --dump_outputs styletransfer
+./styleTransferTest --use_half --stop_on_mismatch --use_vulkan
+
+echo "done"
 
 cd ../../../

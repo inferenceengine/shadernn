@@ -31,16 +31,19 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
+
 #define OP_TYPE_MAX 9
 
 static int op_type = 0;
 
-static int test_addop2(int w, int h, int c, std::string activation) {
+static int test_addop2(int w, int h, int c, const std::string& activation, snn::GpuBackendType backend, bool printMismatch) {
     ncnn::Mat matA = RandomMat(w, h, c);
-    // ncnn::Mat matB = RandomMat(w, h, c);
     ncnn::Mat matB = matA;
-
-    pretty_print_ncnn(matA);
 
     std::vector<ncnn::Mat> resNCNN;
 
@@ -61,19 +64,12 @@ static int test_addop2(int w, int h, int c, std::string activation) {
         fprintf(stderr, "test_binaryop failed a.dims=%d a=(%d %d %d) b.dims=%d b=(%d %d %d) op_type=%d\n", matA.dims, matA.w, matA.h, matA.c, matB.dims, matB.w,
                 matB.h, matB.c, op_type);
     }
-    if (resNCNN.size() > 0) {
-        SNN_LOGI("OUTPUT FROM NCNN\n");
-        pretty_print_ncnn(resNCNN.at(0));
-    }
 
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    ShaderUnitTest test;
+    ShaderUnitTest test(backend);
 
     int size[3] = {w, h, c};
-    // cv::Mat inputMat(3, size, CV_32FC1, padA.data);
     cv::Mat inputMat1(3, size, CV_32FC1);
     cv::Mat inputMat2(3, size, CV_32FC1);
-    printf("%%%%%%%% %s:%d\n", __FUNCTION__, __LINE__);
 
     for (int q = 0; q < matA.c; q++) {
         const float* ptr  = matA.channel(q);
@@ -88,27 +84,36 @@ static int test_addop2(int w, int h, int c, std::string activation) {
             ptr2 += matB.w;
         }
     }
-    printf("%%%%%%%% %s:%d\n", __FUNCTION__, __LINE__);
-
     auto outFile = test.snnAddTestWithLayer2(inputMat1, w, h, c, 1, 1, activation);
-
     printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, c);
 
-    pretty_print_ncnn(resNCNN.at(0));
-    pretty_print_ncnn(snnOutput);
+    ret = CompareMat(resNCNN[0], snnOutput, 0.1);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(resNCNN[0]);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
-    ret = CompareMat(resNCNN.at(0), snnOutput, 0.1);
-
-    printf("test_add test res: %d\n", ret);
+    printf("add test res: %d\n", ret);
 
     return ret;
 }
 
-int main() {
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    test_addop2(4, 4, 1, "linear");
+    bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    test_addop2(4, 4, 1, "linear", backend, printMismatch);
 
     return 0;
 }

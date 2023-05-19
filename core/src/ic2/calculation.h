@@ -14,33 +14,13 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
 struct CalculateDesc : CommonLayerDesc {};
-
-class CalculateLayer : public ShaderLayer {
-public:
-    CalculateLayer(CalculateDesc&& d): ShaderLayer(std::move(d)) {}
-    ~CalculateLayer() {}
-
-protected:
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    // virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-};
 
 }; // namespace dp
 } // namespace snn

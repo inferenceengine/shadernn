@@ -12,9 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// This file contains data structures
+// to hold CPU image
+
 #pragma once
 
-#include "utils.h"
+#include "snn/utils.h"
 #include "color.h"
 #include <string>
 #include <vector>
@@ -24,6 +28,7 @@
 #include <utility>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream>
 
 namespace snn {
 union FP16 {
@@ -83,6 +88,19 @@ union FP32 {
 
 union Rgba8 {
     static const ColorFormat FORMAT = ColorFormat::RGBA8;
+
+    struct {
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t a;
+    };
+    uint8_t u8[4];
+    uint32_t u32;
+};
+
+union SRgba8 {
+    static const ColorFormat FORMAT = ColorFormat::SRGB8_A8;
 
     struct {
         uint8_t r;
@@ -316,7 +334,7 @@ struct ImageDesc {
         reset(alignment);
     }
 
-    ImageDesc(ColorFormat f, size_t w, size_t h = 1, size_t d = 1, size_t channels = 1, size_t step = 0, size_t pitch = 0, size_t slice = 0,
+    ImageDesc(ColorFormat f, size_t w, size_t h, size_t d, size_t channels, size_t step = 0, size_t pitch = 0, size_t slice = 0,
               uint32_t alignment = 0) {
         ImagePlaneDesc pd = {};
         pd.format         = f;
@@ -327,6 +345,16 @@ struct ImageDesc {
         pd.step           = (uint32_t) step;
         pd.pitch          = (uint32_t) pitch;
         pd.slice          = (uint32_t) slice;
+        reset(&pd, 1, alignment);
+    }
+
+    ImageDesc(ColorFormat f, size_t w, size_t h = 1, size_t d = 1) {
+        ImagePlaneDesc pd = {};
+        pd.format         = f;
+        pd.width          = (uint32_t) w;
+        pd.height         = (uint32_t) h;
+        pd.depth          = (uint32_t) d;
+        pd.channels       = getColorFormatDesc(f).ch * d;
         reset(&pd, 1, alignment);
     }
 
@@ -353,81 +381,9 @@ struct ImageDesc {
         return *this;
     }
 
-    void reset(std::vector<ImagePlaneDesc>&& planes_, uint32_t alignment_ = 0) {
-        planes    = std::move(planes_);
-        size      = 0;
-        alignment = (0 == alignment_) ? 4 : alignment_;
-        if (this->planes.size() > 0) {
-            for (auto& p : this->planes) {
-                if (0 == p.width) {
-                    p.width = 1;
-                }
-                if (0 == p.height) {
-                    p.height = 1;
-                }
-                if (0 == p.depth) {
-                    p.depth = 1;
-                }
-                auto& fd = getColorFormatDesc(p.format);
-                p.step   = std::max(p.step, (uint32_t) fd.bits);
-                p.pitch  = std::max(p.width * p.step / 8u, p.pitch);
-                p.pitch  = (p.pitch + alignment - 1) / alignment * alignment; // make sure pitch meets alignment requirement.
-                p.slice  = std::max(p.pitch * p.height, p.slice);
+    void reset(std::vector<ImagePlaneDesc>&& planes_, uint32_t alignment_ = 0);
 
-                // calculate plane offset
-                if (0 == p.offset) {
-                    p.offset = this->size;
-                }
-
-                // update image size
-                this->size = std::max(p.offset + p.size(), this->size);
-
-                // double check image plane's alignment.
-                SNN_ASSERT(0 == (p.pitch % alignment));
-                SNN_ASSERT(0 == (p.slice % alignment));
-                SNN_ASSERT(0 == (p.offset % alignment));
-                SNN_ASSERT(0 == (p.size() % alignment));
-                SNN_ASSERT(0 == (this->size % alignment));
-            }
-        }
-    }
-
-    void reset(uint32_t alignment_ = 0) {
-        alignment = (0 == alignment_) ? 4 : alignment_;
-        if (this->planes.size() > 0) {
-            for (auto& p : this->planes) {
-                if (0 == p.width) {
-                    p.width = 1;
-                }
-                if (0 == p.height) {
-                    p.height = 1;
-                }
-                if (0 == p.depth) {
-                    p.depth = 1;
-                }
-                auto& fd = getColorFormatDesc(p.format);
-                p.step   = std::max(p.step, (uint32_t) fd.bits);
-                p.pitch  = std::max(p.width * p.step / 8u, p.pitch);
-                p.pitch  = (p.pitch + alignment - 1) / alignment * alignment; // make sure pitch meets alignment requirement.
-                p.slice  = std::max(p.pitch * p.height, p.slice);
-
-                // calculate plane offset
-                if (0 == p.offset) {
-                    p.offset = this->size;
-                }
-
-                // update image size
-                this->size = std::max(p.offset + p.size(), this->size);
-
-                // double check image plane's alignment.
-                SNN_ASSERT(0 == (p.pitch % alignment));
-                SNN_ASSERT(0 == (p.slice % alignment));
-                SNN_ASSERT(0 == (p.offset % alignment));
-                SNN_ASSERT(0 == (p.size() % alignment));
-                SNN_ASSERT(0 == (this->size % alignment));
-            }
-        }
-    }
+    void reset(uint32_t alignment_ = 0);
 
     void reset(const ImagePlaneDesc* planes_, size_t count, uint32_t alignment_ = 0) { reset({planes_, planes_ + count}, alignment_); }
 
@@ -454,7 +410,7 @@ struct ImageDesc {
         return validate(row(p, y, z) + x * d.step / 8);
     }
 
-    // construct NV12 dual plane image descriptor
+    // constructs NV12 dual plane image descriptor
     static ImageDesc nv12(uint32_t w, uint32_t h) {
         ImageDesc desc;
         uint32_t y_slice  = w * h;
@@ -526,22 +482,43 @@ private:
     }
 };
 
+class ManagedRawImage;
+
+template<typename PIXEL>
+class ManagedImage;
+
+// This class describes an image with a known at runtime format.
+// The class objects do not own image pixel buffer.
 class RawImage {
 public:
     RawImage() {}
 
-    RawImage(ImageDesc&& desc, void* pixels) { reset(std::move(desc), pixels); }
+    explicit RawImage(ImageDesc&& desc, void* pixels) { reset(std::move(desc), pixels); }
 
     // can copy
     RawImage(const RawImage&) = default;
     RawImage& operator=(const RawImage&) = default;
 
-    // can move
-    RawImage(RawImage&& rhs) { moveFrom(rhs); }
-    RawImage& operator=(RawImage&& rhs) {
-        moveFrom(rhs);
-        return *this;
-    }
+    // cannot copy from managed images !!! //
+    RawImage(const ManagedRawImage&) = delete;
+    RawImage& operator=(const ManagedRawImage&) = delete;
+
+    template<typename PIXEL>
+    RawImage(const ManagedImage<PIXEL>&) = delete;
+    template<typename PIXEL>
+    RawImage& operator=(const ManagedImage<PIXEL>&) = delete;
+    /////////////////////////////////////////////
+
+    // cannot move from managed images !!! //
+    RawImage(ManagedRawImage&& rhs) = delete;
+    RawImage& operator=(ManagedRawImage&& rhs) = delete;
+
+    template<typename PIXEL>
+    RawImage(ManagedImage<PIXEL>&& rhs) = delete;
+
+    template<typename PIXEL>
+    RawImage& operator=(ManagedImage<PIXEL>&& rhs) = delete;
+    /////////////////////////////////////////////
 
     // return descriptor of the whole image
     const ImageDesc& desc() const { return _desc; }
@@ -569,40 +546,36 @@ public:
     uint32_t pitch(size_t index = 0) const { return _desc[index].pitch; }
     uint32_t sliceSize(size_t index = 0) const { return _desc[index].slice; }
 
+    // Gets 3D plane
     const uint8_t* plane(size_t p) const { return _pixels + _desc.plane(p); }
     uint8_t* plane(size_t p) { return _pixels + _desc.plane(p); }
 
+    // Gets 2D slice
     const uint8_t* slice(size_t p, size_t z) const { return _pixels + _desc.slice(p, z); }
     uint8_t* slice(size_t p, size_t z) { return _pixels + _desc.slice(p, z); }
 
+    // Gets 1D row
     const uint8_t* row(size_t p, size_t y, size_t z = 0) const { return _pixels + _desc.row(p, y, z); }
     uint8_t* row(size_t p, size_t y, size_t z = 0) { return _pixels + _desc.row(p, y, z); }
 
+    // Gets 1 pixel
     const uint8_t* at(size_t p, size_t x, size_t y = 0, size_t z = 0) const { return _pixels + _desc.pixel(p, x, y, z); }
     uint8_t* at(size_t p, size_t x, size_t y = 0, size_t z = 0) { return _pixels + _desc.pixel(p, x, y, z); }
 
     void vertFlipInpace();
 
-    void saveToPNG(const std::string& filename, size_t sliceIndex = 0) const;
+    void saveToPNG(const std::string& filename, size_t sliceIndex = 0, bool makeOpaque = false, bool clamp = false) const;
 
-    void saveToBIN(const std::string& filename) const;
+    void saveToBIN(const std::string& filename, bool convertToFP32 = true) const;
 
+    // Gets number of planes
     uint32_t planes() { return (uint32_t) this->_desc.planes.size(); }
-    ImageDesc getDesc() { return _desc; }
+    ImageDesc getDesc() const { return _desc; }
 
 protected:
     uint8_t* _pixels = nullptr;
 
-    void reset(ImageDesc&& desc, void* pixels) {
-        _desc = std::move(desc);
-        if (_desc.empty()) {
-            SNN_LOGI("Seems like description is empty");
-        }
-        _pixels = _desc.empty() ? nullptr : (uint8_t*) pixels;
-        if (_pixels && 0 != ((intptr_t) _pixels % _desc.alignment)) {
-            SNN_LOGE("the pixel buffer pointer does not meet alignment requirement.");
-        }
-    }
+    void reset(ImageDesc&& desc, void* pixels);
 
     void moveFrom(RawImage& rhs) {
         if (this == &rhs) {
@@ -644,6 +617,10 @@ struct AlignedAllocator {
     }
 };
 
+template<typename PIXEL>
+class ManagedImage;
+
+// The objects of this class own pixel buffer.
 class ManagedRawImage : public RawImage {
 public:
     ManagedRawImage() {}
@@ -659,34 +636,32 @@ public:
 
     // can move
     ManagedRawImage(ManagedRawImage&& that) { moveFrom(that); }
+
     ManagedRawImage& operator=(ManagedRawImage&& that) {
         AlignedAllocator::deallocate(_pixels);
         moveFrom(that);
         return *this;
     }
 
-    static ManagedRawImage loadFromFile(std::string filename);
-    static ManagedRawImage loadFromAsset(std::string assetName);
+    template<typename PIXEL>
+    ManagedRawImage(ManagedImage<PIXEL>&& that) { moveFrom(that); }
+
+    template<typename PIXEL>
+    ManagedRawImage& operator=(ManagedImage<PIXEL>&& that) {
+        AlignedAllocator::deallocate(_pixels);
+        moveFrom(that);
+        return *this;
+    }
+
+    static ManagedRawImage loadFromFile(const std::string& filename, bool fromBin = false);
+    static ManagedRawImage loadFromAsset(const std::string& assetName, bool fromBin = false);
 
 private:
-    void store(const void* buffer, size_t length) {
-        size_t imageSize = size();
-        _pixels          = AlignedAllocator::allocate(imageSize, alignment());
-        if (!_pixels) {
-            return;
-        }
-        if (buffer) {
-            if (0 == length) {
-                length = imageSize;
-            } else if (length != imageSize) {
-                SNN_LOGW("incoming pixel buffer size does not equal to calculated image size.");
-            }
-            memcpy(_pixels, buffer, std::min(imageSize, length));
-        }
-    }
+    void store(const void* buffer, size_t length);
 };
 
-// For typed image, format of each planes must be identical.
+// This class describes an image with a known at compile time format.
+// Format of each planes must be identical.
 template<typename PIXEL>
 class TypedImage : public RawImage {
     static_assert(getColorFormatDesc(PIXEL::FORMAT).bits == sizeof(PIXEL) * 8);
@@ -758,7 +733,9 @@ private:
     }
 };
 
-// For typed image, format of each planes must be identical.
+// This class describes an image with a known at compile time format.
+// The objects of this class own pixel buffer.
+// Format of each planes must be identical.
 template<typename PIXEL>
 class ManagedImage : public TypedImage<PIXEL> {
 public:
@@ -809,32 +786,42 @@ private:
     }
 };
 
+// Conversion functions
+bool toRgba32f(Rgba32f& dst, const uint8_t* src, ColorFormat srcFormat);
 bool toRgba32f(const RawImage& src, TypedImage<Rgba32f>& dst);
 bool toRgba32f(const RawImage& src, TypedImage<Rgba32f>& dst, float min, float max);
 ManagedImage<Rgba32f> toRgba32f(const RawImage& src);
 ManagedImage<Rgba32f> toRgba32f(const RawImage& src, float min, float max);
 
+bool toRgba16f(Rgba16f& dst, const uint8_t* src, ColorFormat srcFormat);
 bool toRgba16f(const RawImage& src, TypedImage<Rgba16f>& dst);
-bool toRgba16f(const RawImage& src, TypedImage<Rgba16f>& dst, float min, float max);
 ManagedImage<Rgba16f> toRgba16f(const RawImage& src);
-ManagedImage<Rgba16f> toRgba16f(const RawImage& src, float min, float max);
 
+bool toR32f(R32f& dst, const uint8_t* src, ColorFormat srcFormat);
 bool toR32f(const RawImage& src, TypedImage<R32f>& dst);
 bool toR32f(const RawImage& src, TypedImage<R32f>& dst, float min, float max);
 ManagedImage<R32f> toR32f(const RawImage& src);
 ManagedImage<R32f> toR32f(const RawImage& src, float min, float max);
 
-bool toRgba8(const RawImage& src, TypedImage<Rgba8>& dst);
-ManagedImage<Rgba8> toRgba8(const RawImage& src);
-
+bool toR8(R8& dst, const uint8_t* src, ColorFormat srcFormat, bool normalize = true);
 bool toR8(const RawImage& src, TypedImage<R8>& dst);
 ManagedImage<R8> toR8(const RawImage& src);
 
+bool toRgb8(Rgb8& dst, const uint8_t* src, ColorFormat srcFormat, bool normalize = true);
 bool toRgb8(const RawImage& src, TypedImage<Rgb8>& dst);
 ManagedImage<Rgb8> toRgb8(const RawImage& src);
 
-bool normalize(const RawImage& src, TypedImage<Rgba32f>& dst, std::vector<float>& means, std::vector<float>& norms);
-ManagedImage<Rgba32f> normalize(const RawImage& src, std::vector<float>& means, std::vector<float>& norms);
+bool toRgba8(Rgba8& dst, const uint8_t* src, ColorFormat srcFormat, bool normalize = true);
+bool toRgba8(const RawImage& src, TypedImage<Rgba8>& dst);
+bool toRgba8(const RawImage& src, TypedImage<Rgba8>& dst, ColorFormat format);
+ManagedImage<Rgba8> toRgba8(const RawImage& src, bool makeOpaque = false);
+
+bool normalize(const RawImage& src, TypedImage<Rgba32f>& dst, const std::vector<float>& means, const std::vector<float>& norms);
+ManagedImage<Rgba32f> normalize(const RawImage& src, const std::vector<float>& means, const std::vector<float>& norms);
+
+void clamp(const RawImage& src, RawImage& dst);
+ManagedRawImage clamp(const RawImage& src);
+void clamp(RawImage& srcDst);
 
 bool rgba8ToI420(const RawImage& rgba, RawImage& i420);
 bool rgba8ToNv12(const RawImage& rgba, RawImage& nv12);
@@ -844,4 +831,8 @@ bool nv21ToRgba8(const RawImage& nv21, RawImage& rgba);
 bool nv12ToI420(const RawImage& nv12, RawImage& i420);
 bool i420ToRgba8(const RawImage& i420, RawImage& rgba);
 bool i420ToNv12(const RawImage& i420, RawImage& nv12);
+
+void printC4Buffer(float *buffer, int input_h, int input_w, int input_c, std::ostream& stream = std::cout);
+void printC4BufferFP16(uint16_t *buffer, int input_h, int input_w, int input_c, std::ostream& stream = std::cout);
+
 } // namespace snn

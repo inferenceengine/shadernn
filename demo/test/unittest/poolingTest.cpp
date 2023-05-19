@@ -29,16 +29,19 @@
 #include "layer/pooling.h"
 #include "testutil.h"
 #include "matutil.h"
-
 #include "shaderUnitTest.h"
 
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
+
 static int test_pooling2(int w, int h, int c, int pooling_type, int kernel, int stride, int pad, int global_pooling, int pad_mode,
-                         int avgpool_count_include_pad, int adaptive_pooling, int out_w) {
-    // ncnn::Mat padA = RandomMat(w, h, c);
+                         int avgpool_count_include_pad, int adaptive_pooling, int out_w, snn::GpuBackendType backend, bool printMismatch) {
     ncnn::Mat padA  = SetValueMat(w, h, c, 1.0f);
     padA[0]         = 100;
     padA[w * h - 1] = 200;
-    // padA[20] = 300;
 
     ncnn::ParamDict pd;
     pd.set(0, pooling_type);              // pooling_type
@@ -65,40 +68,39 @@ static int test_pooling2(int w, int h, int c, int pooling_type, int kernel, int 
             "global_pooling=%d pad_mode=%d avgpool_count_include_pad=%d adaptive_pooling=%d out_w=%d\n",
             w, h, c, pooling_type, kernel, stride, pad, global_pooling, pad_mode, avgpool_count_include_pad, adaptive_pooling, out_w);
     }
-    printf("%%%%%%%% %s:%d\n", __FUNCTION__, __LINE__);
-    pretty_print_ncnn(b);
 
-    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    ShaderUnitTest test;
+    ShaderUnitTest test(backend);
 
     cv::Mat inputMat = NCNNMat2CVMat(padA);
-
-    printf("%%%%%%%% %s:%d\n", __FUNCTION__, __LINE__);
-    print_3d_cvmat(inputMat);
 
     auto outFile = test.snnPoolingTestWithLayer(inputMat, w, h, c, kernel, stride, pooling_type, pad_mode);
     printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, c);
 
-    printf("%%%%%%%% %s:%d, NCNN output\n", __FUNCTION__, __LINE__);
-    pretty_print_ncnn(b);
-
-    printf("%%%%%%%% %s:%d, SNN output\n", __FUNCTION__, __LINE__);
-    pretty_print_ncnn(snnOutput);
-
     ret = CompareMat(b, snnOutput);
-
-    printf("test_pooling test res: %d\n", ret);
+    printf("pooling test res: %d\n", ret);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(b);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
     return ret;
 }
 
-int main() {
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    /* pooling type: 0-max pooling, 1-avg pooling
-     * pad mode: 1-valid (not implemented), 2-same upper, 3-same lower*/
-    test_pooling2(9, 9, 1, 0, 2, 3, 0, 0, 3 /*padding*/, 1, 0, 13);
-    // test_pooling2(57, 57, 4, 1, 3, 3, 0, 0, 0, 0, 0, 5);
+        bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    test_pooling2(9, 9, 4, 1, 2, 3, 0, 0, 3 /*padding*/, 1, 0, 13, backend, printMismatch);
     return 0;
 }

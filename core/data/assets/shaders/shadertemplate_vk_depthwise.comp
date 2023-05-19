@@ -1,0 +1,137 @@
+/* Copyright (C) 2020 - 2022 OPPO. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+#version 450 core
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+
+#ifdef FP16_PRECISION
+#define PRECISION mediump
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba16f
+#else
+#define PRECISION highp
+precision PRECISION float;
+#define OUTPUT_FORMAT rgba32f
+#endif
+
+layout(local_size_x = WG_X, local_size_y = WG_Y, local_size_z = WG_Z) in;
+
+layout (set=0, binding=0, OUTPUT_FORMAT) writeonly uniform PRECISION image3D outputImage;
+layout (set=0, binding=1) uniform PRECISION sampler3D inputImage;
+
+layout (set=0, binding=2) buffer FilterBufffer { vec4 data[]; } Filter;
+layout (set=0, binding=3) buffer BiasBuffer { vec4 data[]; } uBias;
+layout (set=0, binding=4) buffer BN_Beta { vec4 data[]; } uBeta;
+layout (set=0, binding=5) buffer BN_Gamma { vec4 data[]; } uGamma;
+layout (set=0, binding=6) buffer BN_Mean { vec4 data[]; } uMean;
+layout (set=0, binding=7) buffer BN_Variance { vec4 data[]; } uVariance;
+
+layout(constant_id = 0)  const int uPadx = 1;
+layout(constant_id = 1)  const int uPady = 1;
+layout(constant_id = 2)  const int uKernelSizex = 1;
+layout(constant_id = 3)  const int uKernelSizey = 1;
+layout(constant_id = 4)  const int uStridex = 1;
+layout(constant_id = 5)  const int uStridey = 1;
+layout(constant_id = 6)  const int uOutputSizex = 1;
+layout(constant_id = 7)  const int uOutputSizey = 1;
+layout(constant_id = 8)  const int uOutputSizez = 1;
+layout(constant_id = 9)  const int uInputSizex = 1;
+layout(constant_id = 10) const int uInputSizey = 1;
+layout(constant_id = 11) const int uInputSizez = 1;
+layout(constant_id = 12) const int uDilatex = 1;
+layout(constant_id = 13) const int uDilatey = 1;
+layout(constant_id = 14) const int uUnroll = 4;
+layout(constant_id = 15) const int activation = 0;
+layout(constant_id = 16) const int paddingMode = 0;
+layout(constant_id = 17) const int useBatchNorm = 0;
+layout(constant_id = 18) const float leakyReluVal = 0.f;
+
+#define UP_DIV(x, y) (((x)+(y)-1)/(y))
+
+void main()
+{
+    ivec3 pos = ivec3(gl_GlobalInvocationID)*ivec3(1, 1, 1);
+    ivec3 outputSize = ivec3(uOutputSizex, uOutputSizey, uOutputSizez);
+    if (all(lessThan(pos, outputSize)))
+    {
+        int KSIZE_Y = uKernelSizey;
+        int KSIZE_X = uKernelSizex;
+        ivec3 inputSize = ivec3(uInputSizex, uInputSizey, uInputSizez);
+        ivec2 s0 = ivec2(pos.x*uStridex-uPadx, pos.y*uStridey-uPady);
+        int fx, fy, fz;
+        ivec2 uDilate = ivec2(uDilatex, uDilatey);
+        ivec2 uKernelSize = ivec2(uKernelSizex, uKernelSizey);
+        ivec2 sfxy = max(ivec2(0), (UP_DIV(-s0, uDilate)));
+        ivec2 efxy = min(uKernelSize, UP_DIV(inputSize.xy-s0, uDilate));
+        vec4 color = uBias.data[pos.z];
+        for (fy=sfxy.y; fy<efxy.y; ++fy)
+        {
+            int sy = fy*uDilate.y + s0.y;
+            for (fx=sfxy.x; fx<efxy.x; ++fx)
+            {
+                int sx1 = fx*uDilate.x + s0.x;
+                vec4 k = Filter.data[pos.z + (fx * uInputSizez) + (fy * uInputSizez * uKernelSizey)];
+                color  += k*texelFetch(inputImage, ivec3(sx1, sy, pos.z), 0);
+            }
+        }
+
+        if (useBatchNorm == 1) {
+            vec4 movingVariance = uVariance.data[pos.z]; 
+            vec4 movingMean = uMean.data[pos.z];         
+            vec4 gamma = uGamma.data[pos.z]; 
+            vec4 beta = uBeta.data[pos.z];                 
+            vec4 sqrtVar = sqrt(movingVariance + vec4(0.001f));             
+            sqrtVar = max(sqrtVar, vec4(0.0001f)); 
+            color = ((gamma/sqrtVar) * (color - movingMean)) + beta; 
+        }
+
+        // RELU                                               
+        if (activation == 1) {
+            color = max(color, vec4(0));
+        }
+
+        // RELU6
+        if (activation == 2) {
+            color = clamp(color, vec4(0), vec4(6));
+        }
+
+        // TANH
+        if (activation == 3) {
+            color = tanh(color);
+        }
+
+        // SIGMOID
+        if (activation == 4) {
+            color  = vec4(1.0f)/(vec4(1.0f)+ exp(-color));
+        }
+
+        // LEAKY RELU
+        if (activation == 5) {
+            // Don't inline this temporary variable !!!
+            // Android Vulkan driver has a weird bug here
+            // with floating specialization constants using in combination with mediump
+            vec4 vec4leakyReluVal = vec4(leakyReluVal);
+            color   = max(color,  (color * vec4leakyReluVal));
+        }
+
+        // SILU
+        if (activation == 6) {
+            color    = color  * vec4(1.0f)/(vec4(1.0f)+ exp(-color));
+        }
+
+        imageStore(outputImage, ivec3(pos.x+0, pos.y, pos.z), color);
+    }
+}

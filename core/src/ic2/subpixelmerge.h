@@ -14,18 +14,11 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <vector>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -39,18 +32,19 @@ struct SubpixelDesc : CommonLayerDesc {
     }
 };
 
+// This is a base class to generates a shader for subpixel convolutional layer for ESPCN model
+// https://medium.com/@zhuocen93/an-overview-of-espcn-an-efficient-sub-pixel-convolutional-neural-network-b76d0a6c875e
 class SubpixelLayer : public ShaderLayer {
 public:
     SubpixelLayer(SubpixelDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
-    ~SubpixelLayer() {}
-    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
+    virtual ~SubpixelLayer() = default;
+    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override {
+        return {0, {{ static_cast<float>(_desc.kernelSize), static_cast<float>(_desc.kernelSize), 0.0f, 0.0f}} };
+    }
 
 protected:
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-
-private:
     SubpixelDesc _desc;
 };
 
-}; // namespace dp
+} // namespace dp
 } // namespace snn

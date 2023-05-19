@@ -280,10 +280,6 @@ public class RecordingManager implements
         addRecordingToMediaLibrary("somethingCool");
     }
 
-    private void updateSavePath(String path) {
-//        NativeLibrary.updateSavePath(path);
-    }
-
     private void initPreferences() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
@@ -291,8 +287,6 @@ public class RecordingManager implements
         saveAs = sharedPreferences.getBoolean(resources.getString(R.string.key_toggle_save_as), false);
         Log.d(TAG, "Preference Save As: " + saveAs);
         path = sharedPreferences.getString(resources.getString(R.string.key_default_save_path), "");
-        Log.d(TAG, "Preference Save Path: " + path);
-        updateSavePath(path);
     }
 
     @Override
@@ -302,7 +296,6 @@ public class RecordingManager implements
         if (key.equals(resources.getString(R.string.key_default_save_path))) {
             String newPath = sharedPreferences.getString(key, "");
             Log.d(TAG, "Preference Save Path: " + newPath);
-            updateSavePath(newPath);
         } else if (key.equals(resources.getString(R.string.key_toggle_save_as))) {
             saveAs = sharedPreferences.getBoolean(key, false);
             Log.d(TAG, "Preference Save As: " + saveAs);

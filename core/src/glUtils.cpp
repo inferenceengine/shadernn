@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #include "pch.h"
-#include "snn/glUtils.h"
+#include "glUtils.h"
 #include <opencv2/opencv.hpp>
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -281,7 +281,7 @@ void gl::initGLExtensions(bool printExtensionList) {
 
 #ifdef __ANDROID__
     typedef void* (*GetProcAddress)(const char* name);
-    auto gpa = (GetProcAddress) dlsym(nullptr, "eglGetProcAddress");
+    auto gpa = (GetProcAddress) dlsym(nullptr, "eglGetProcAddress"); // nullptr should be replaced by RTLD_DEFAULT for clarity
     SNN_CHK(gpa);
     SNN_CHK(gladLoadGLES2Loader(gpa));
 #else
@@ -303,10 +303,9 @@ void gl::TextureObject::attach(GLenum target, GLuint id) {
     _desc.target = target;
     _desc.id     = id;
     bind(0);
-    SNN_LOGD("%s:%d attach TEXTURE %x:%d, w:%d, h:%d, d:%d\n", __FUNCTION__, __LINE__, target, id, _desc.width, _desc.height, _desc.depth);
-    // std::cout << "Texture Width: " << _desc.width << std::endl;
+    SNN_LOGD("attach TEXTURE %x:%d, w:%d, h:%d, d:%d", target, id, _desc.width, _desc.height, _desc.depth);
 
-    glGetTexLevelParameteriv(_desc.target, 0, GL_TEXTURE_WIDTH, (GLint*) &_desc.width);
+    GLCHK(glGetTexLevelParameteriv(_desc.target, 0, GL_TEXTURE_WIDTH, (GLint*) &_desc.width));
     SNN_ASSERT(_desc.width);
 
     glGetTexLevelParameteriv(target, 0, GL_TEXTURE_HEIGHT, (GLint*) &_desc.height);
@@ -335,7 +334,6 @@ void gl::TextureObject::attach(GLenum target, GLuint id) {
     glGetTexLevelParameteriv(target, 0, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
     _desc.format   = fromGLInternalFormat(internalFormat);
     _desc.channels = getColorFormatDesc(_desc.format).ch * _desc.depth;
-    // SNN_LOGI("%s:%d attach TEXTURE %d:%d, w:%d, h:%d, d:%d\n", __FUNCTION__, __LINE__,target, id, _desc.width, _desc.height, _desc.depth);
     unbind();
 }
 
@@ -348,15 +346,21 @@ void gl::TextureObject::allocate2D(ColorFormat f, size_t w, size_t h, size_t cha
     _desc.width    = (uint32_t) w;
     _desc.height   = (uint32_t) h;
     _desc.depth    = (uint32_t) 1;
+    SNN_ASSERT(channels == getColorFormatDesc(_desc.format).ch * _desc.depth);
     _desc.channels = (uint32_t) channels;
     _desc.mips     = (uint32_t) m;
     _owned         = true;
     GLCHK(glGenTextures(1, &_desc.id));
     GLCHK(glBindTexture(_desc.target, _desc.id));
     applyDefaultParameters();
-    const auto& cd = getColorFormatDesc(_desc.format);
+    const auto& cd = getNativeColorGL(_desc.format);
     GLCHK(glTexStorage2D(_desc.target, (GLsizei) _desc.mips, cd.glInternalFormat, (GLsizei) _desc.width, (GLsizei) _desc.height));
     GLCHK(glBindTexture(_desc.target, 0));
+}
+
+void gl::TextureObject::allocate2D(ColorFormat f, size_t w, size_t h) {
+    size_t channels = getColorFormatDesc(f).ch;
+    allocate2D(f, w, h, channels, 1);
 }
 
 // -----------------------------------------------------------------------------
@@ -368,15 +372,21 @@ void gl::TextureObject::allocate2DArray(ColorFormat f, size_t w, size_t h, size_
     _desc.width    = (uint32_t) w;
     _desc.height   = (uint32_t) h;
     _desc.depth    = (uint32_t) l;
+    SNN_ASSERT(channels == getColorFormatDesc(_desc.format).ch * _desc.depth);
     _desc.channels = (uint32_t) channels;
     _desc.mips     = (uint32_t) m;
     _owned         = true;
     GLCHK(glGenTextures(1, &_desc.id));
     GLCHK(glBindTexture(_desc.target, _desc.id));
     applyDefaultParameters();
-    const auto& cd = getColorFormatDesc(_desc.format);
+    const auto& cd = getNativeColorGL(_desc.format);
     GLCHK(glTexStorage3D(_desc.target, (GLsizei) _desc.mips, cd.glInternalFormat, (GLsizei) _desc.width, (GLsizei) _desc.height, (GLsizei) _desc.depth));
     GLCHK(glBindTexture(_desc.target, 0));
+}
+
+void gl::TextureObject::allocate2DArray(snn::ColorFormat f, size_t w, size_t h, size_t l) {
+    size_t channels = getColorFormatDesc(f).ch * l;
+    allocate2DArray(f, w, h, l, channels, 1);
 }
 
 // -----------------------------------------------------------------------------
@@ -388,15 +398,21 @@ void gl::TextureObject::allocate3D(ColorFormat f, size_t w, size_t h, size_t l, 
     _desc.width    = (uint32_t) w;
     _desc.height   = (uint32_t) h;
     _desc.depth    = (uint32_t) l;
+    SNN_ASSERT(channels == getColorFormatDesc(_desc.format).ch * _desc.depth);
     _desc.channels = (uint32_t) channels;
     _desc.mips     = (uint32_t) m;
     _owned         = true;
     GLCHK(glGenTextures(1, &_desc.id));
     GLCHK(glBindTexture(_desc.target, _desc.id));
     applyDefaultParameters();
-    const auto& cd = getColorFormatDesc(_desc.format);
+    const auto& cd = getNativeColorGL(_desc.format);
     GLCHK(glTexStorage3D(_desc.target, (GLsizei) _desc.mips, cd.glInternalFormat, (GLsizei) _desc.width, (GLsizei) _desc.height, (GLsizei) _desc.depth));
     GLCHK(glBindTexture(_desc.target, 0));
+}
+
+void gl::TextureObject::allocate3D(snn::ColorFormat f, size_t w, size_t h, size_t l) {
+    size_t channels = getColorFormatDesc(f).ch * l;
+    allocate3D(f, w, h, l, channels);
 }
 
 // -----------------------------------------------------------------------------
@@ -408,15 +424,21 @@ void gl::TextureObject::allocateCube(ColorFormat f, size_t w, size_t channels, s
     _desc.width    = (uint32_t) w;
     _desc.height   = (uint32_t) w;
     _desc.depth    = 6;
+    SNN_ASSERT(channels == getColorFormatDesc(_desc.format).ch * _desc.depth);
     _desc.channels = (uint32_t) channels;
     _desc.mips     = (uint32_t) m;
     _owned         = true;
     GLCHK(glGenTextures(1, &_desc.id));
     GLCHK(glBindTexture(GL_TEXTURE_CUBE_MAP, _desc.id));
     applyDefaultParameters();
-    const auto& cd = snn::getColorFormatDesc(_desc.format);
+    const auto& cd = snn::getNativeColorGL(_desc.format);
     GLCHK(glTexStorage2D(GL_TEXTURE_CUBE_MAP, (GLsizei) _desc.mips, cd.glInternalFormat, (GLsizei) _desc.width, (GLsizei) _desc.width));
     GLCHK(glBindTexture(_desc.target, 0));
+}
+
+void gl::TextureObject::allocateCube(snn::ColorFormat f, size_t w) {
+    size_t channels = getColorFormatDesc(f).ch * 6;
+    allocateCube(f, w, channels);
 }
 
 void gl::TextureObject::applyDefaultParameters() {
@@ -439,7 +461,7 @@ void gl::TextureObject::setPixels(size_t level, size_t x, size_t y, size_t w, si
         return;
     }
     GLCHK(glBindTexture(_desc.target, _desc.id));
-    auto& cf = getColorFormatDesc(_desc.format);
+    auto cf = getColorFormatDescGL(_desc.format);
     SNN_ASSERT(0 == (rowPitchInBytes * 8 % cf.bits));
     GLCHK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
     GLCHK(glPixelStorei(GL_UNPACK_ROW_LENGTH, (int) (rowPitchInBytes * 8 / cf.bits)));
@@ -454,7 +476,7 @@ void gl::TextureObject::setPixels(size_t layer, size_t level, size_t x, size_t y
     }
 
     GLCHKDBG(glBindTexture(_desc.target, _desc.id));
-    auto& cf = getColorFormatDesc(_desc.format);
+    auto cf = getColorFormatDescGL(_desc.format);
     SNN_ASSERT(0 == (rowPitchInBytes * 8 % cf.bits));
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, (int) (rowPitchInBytes * 8 / cf.bits));
@@ -557,70 +579,39 @@ static inline uint64_t fp64_to_bits(double f) {
 
 // -----------------------------------------------------------------------------
 //
-snn::ManagedRawImage gl::TextureObject::getBaseLevelPixels() const {
+snn::ManagedRawImage gl::TextureObject::getBaseLevelPixels(bool convertFp16ToFp32) const {
     if (empty()) {
         return {};
     }
-    // SNN_LOGI("%s:%d %d,%d,%d,%d,%d\n", __FUNCTION__,__LINE__, _desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels);
     snn::ManagedRawImage image(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels));
     GLint pixelBufferIndex = -1;
-    GLuint _frameBuffer    = 0;
     GLCHK(glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &pixelBufferIndex));
     if (pixelBufferIndex != 0) {
         glBindTexture(_desc.target, _desc.id);
         GLCHK(glGenBuffers(1, (GLuint*) &pixelBufferIndex));
         GLCHK(glBindBuffer(GL_PIXEL_PACK_BUFFER, (GLuint) pixelBufferIndex));
         GLCHK(glReadBuffer(GL_COLOR_ATTACHMENT0));
-        auto& cf = snn::getColorFormatDesc(_desc.format);
+        auto& cf = snn::getNativeColorGL(_desc.format);
         GLCHK(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, cf.glInternalFormat, 0));
         SNN_LOGD("Downloading PBO: %d", pixelBufferIndex);
         glGetTexImage(_desc.target, 0, cf.glFormat, cf.glType, 0);
         uint8_t* pbo = (uint8_t*) glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-        if (_desc.format == ColorFormat::RGBA16F) {
-            snn::ManagedRawImage rgba16fImage(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels), pbo, image.size());
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-            auto rgba32fImage = snn::toRgba32f(rgba16fImage);
-            snn::ManagedRawImage retImage(ImageDesc(ColorFormat::RGBA32F, _desc.width, _desc.height, _desc.depth, _desc.channels), rgba32fImage.data(),
-                                          rgba32fImage.size());
-            return retImage;
-        } else {
-            snn::ManagedRawImage retImage(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels), pbo, image.size());
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-            return retImage;
-        }
+        snn::ManagedRawImage retImage(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels), pbo, image.size());
+        glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        return retImage;
     } else {
 #ifdef __ANDROID__
         if (_desc.target == GL_TEXTURE_2D) {
-            auto& cf = getColorFormatDesc(_desc.format);
+            auto& cf = getNativeColorGL(_desc.format);
             // SNN_LOGD("INPUT TEXTURE 2D FORMAT is: %s", cf.name);
             GLuint _frameBuffer = 0;
             GLCHKDBG(glGenFramebuffers(1, &_frameBuffer));
             GLCHKDBG(glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer));
             GLCHKDBG(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, _desc.target, _desc.id, 0));
             GLCHKDBG(glReadBuffer(GL_COLOR_ATTACHMENT0));
-            if (cf.glType == GL_FLOAT || cf.glType == GL_HALF_FLOAT) {
-                if (_desc.format == ColorFormat::RGBA16F) {
-                    std::vector<uint8_t> tempBuffer(_desc.width * _desc.height * 8);
-                    std::vector<uint8_t> floatBuffer(_desc.width * _desc.height * 16);
-                    GLCHKDBG(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_HALF_FLOAT, tempBuffer.data()));
-                    for (std::size_t i = 0; i < tempBuffer.size(); i += 2) {
-                        uint16_t val;
-                        std::memcpy(&val, &tempBuffer.at(i), 2);
-                        float flt = snn::convertToHighPrecision(val);
-                        std::memcpy(&floatBuffer.at(2 * i), &flt, 4);
-                    }
-                    snn::ManagedRawImage retImage(ImageDesc(ColorFormat::RGBA32F, _desc.width, _desc.height, _desc.depth, _desc.channels), floatBuffer.data(),
-                                                  floatBuffer.size());
-                    return retImage;
-                } else {
-                    GLCHKDBG(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_FLOAT, image.data()));
-                }
-            } else {
-                GLCHKDBG(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_UNSIGNED_BYTE, image.data()));
-            }
-            //GLCHK(;);
+            GLCHKDBG(glReadnPixels(0, 0, _desc.width, _desc.height, cf.glFormat, cf.glType, image.size(), image.data()));
         } else {
-            auto& cf            = getColorFormatDesc(_desc.format);
+            auto cf            = getColorFormatDescGL(_desc.format);
             std::size_t bitSize = (std::size_t)(cf.bits / (cf.ch * 8));
             glBindTexture(_desc.target, _desc.id);
             std::vector<uint8_t> dataBuffer;
@@ -629,14 +620,11 @@ snn::ManagedRawImage gl::TextureObject::getBaseLevelPixels() const {
             glGetIntegerv(GL_MAX_FRAMEBUFFER_SAMPLES, &maxFBOSamples);
             SNN_LOGD("Max FBO Layer is %d", maxFBOLayers);
             SNN_LOGD("Max FBO Sample count is %d", maxFBOSamples);
-            SNN_ASSERT(_desc.depth < maxFBOLayers);
+            SNN_ASSERT(_desc.depth < static_cast<uint32_t>(maxFBOLayers));
             SNN_ASSERT(_desc.width);
             SNN_ASSERT(_desc.height);
-            uint32_t planeSize = _desc.width * _desc.height * 4 * bitSize;
+            uint32_t planeSize = _desc.width * _desc.height * cf.ch * bitSize;
             for (std::size_t i = 0; i < _desc.depth; i++) {
-                std::size_t offsetStart = planeSize * i;
-                std::size_t offsetEnd   = planeSize * (i + 1);
-                // uint8_t* tempBuffer = (uint8_t*)malloc(planeSize * sizeof(uint8_t));
                 std::vector<uint8_t> tempBuffer(planeSize);
                 GLuint frameBuffer = 0;
                 GLCHK(glGenFramebuffers(1, &frameBuffer));
@@ -678,39 +666,14 @@ snn::ManagedRawImage gl::TextureObject::getBaseLevelPixels() const {
                     SNN_RIP("Something else wit framebuffer");
                     break;
                 }
-                if (cf.glType == GL_FLOAT || cf.glType == GL_HALF_FLOAT) {
-                    if (_desc.format == ColorFormat::RGBA16F) {
-                        GLCHK(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_HALF_FLOAT, tempBuffer.data()));
-                        // SNN_LOGD("Pixel Dump complete, converting to high precision");
-                        std::vector<uint8_t> floatBuffer(_desc.width * _desc.height * 4 * 4);
-                        for (std::size_t i = 0; i < planeSize; i += bitSize) {
-                            uint16_t val;
-                            std::memcpy(&val, &tempBuffer.at(i), bitSize);
-                            float flt = snn::convertToHighPrecision(val);
-                            std::memcpy(&floatBuffer.at(2 * i), &flt, 4);
-                        }
-                        // SNN_LOGD("Completed conversion to high precision");
-                        dataBuffer.insert(dataBuffer.end(), floatBuffer.begin(), floatBuffer.end());
-                    } else {
-                        glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_FLOAT, tempBuffer.data());
-                        dataBuffer.insert(dataBuffer.end(), tempBuffer.begin(), tempBuffer.end());
-                    }
-                } else {
-                    GLCHK(glReadPixels(0, 0, _desc.width, _desc.height, GL_RGBA, GL_UNSIGNED_BYTE, tempBuffer.data()));
-                    dataBuffer.insert(dataBuffer.end(), tempBuffer.begin(), tempBuffer.end());
-                }
+                GLCHK(glReadnPixels(0, 0, _desc.width, _desc.height, cf.glFormat, cf.glType, tempBuffer.size(), tempBuffer.data()));
+                dataBuffer.insert(dataBuffer.end(), tempBuffer.begin(), tempBuffer.end());
                 glDeleteFramebuffers(1, &frameBuffer);
             }
-            if (cf.glType == GL_FLOAT || cf.glType == GL_HALF_FLOAT) {
-                image = snn::ManagedRawImage(ImageDesc(snn::ColorFormat::RGBA32F, _desc.width, _desc.height, _desc.depth, _desc.channels), dataBuffer.data(),
-                                             dataBuffer.size());
-            } else {
-                image =
-                    snn::ManagedRawImage(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels), dataBuffer.data(), dataBuffer.size());
-            }
+            image = snn::ManagedRawImage(ImageDesc(_desc.format, _desc.width, _desc.height, _desc.depth, _desc.channels), dataBuffer.data(), dataBuffer.size());
         }
-#else
-        auto& cf = getColorFormatDesc(_desc.format);
+#else   // not __ANDROID__
+        auto cf = getColorFormatDescGL(_desc.format);
         glPixelStorei(GL_UNPACK_ALIGNMENT, image.alignment());
         CHECK_GL_ERROR("glPixelStorei");
         glPixelStorei(GL_UNPACK_ROW_LENGTH, (int) image.pitch() * 8 / (int) cf.bits);
@@ -725,6 +688,9 @@ snn::ManagedRawImage gl::TextureObject::getBaseLevelPixels() const {
         CHECK_GL_ERROR("glPixelStorei");
 
 #endif
+        if (image.format() == snn::ColorFormat::RGBA16F && convertFp16ToFp32) {
+            image = snn::toRgba32f(image);
+        }
         return image;
     }
 }
@@ -969,9 +935,7 @@ GLuint gl::linkProgram(const std::vector<GLuint>& shaders, const char* optionalP
 //
 void gl::GpuTimeElapsedQuery::stop() {
     if (_q.running()) {
-        // SNN_LOGI("%s still running: %d", name.c_str(), _q.status);
         _q.end();
-        // SNN_LOGI("%s end running: %d", name.c_str(), _q.status);
     }
 }
 
@@ -1380,6 +1344,8 @@ gl::RenderContext::RenderContext(Type t, WindowHandle w) {
     // store current context
     RenderContextStack rcs;
     rcs.push();
+
+    SNN_LOGI("Creating new OpenGL %s context", (t == SHARED) ? "shared" : "standalone");
 
     _impl = new Impl(w, t == SHARED);
     makeCurrent();

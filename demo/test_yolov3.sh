@@ -13,30 +13,39 @@
 # limitations under the License.
 
 #!/bin/bash
+set -e
 
-./build-tests.sh clean
-./build-tests.sh linux
+if [ -z  "$NO_REBUILD_IN_TESTS" ]; then
+  ./build-tests.sh clean
+  ./build-tests.sh linux
+fi
 
 cd build-test/test/unittest/
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_compute 1 1
-./yolov3TinyTest --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --dump_outputs yolov3tiny
+./yolov3TinyTest --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_compute --use_half 1 1
-./yolov3TinyTest --use_compute
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_vulkan --dump_outputs yolov3tiny
+./yolov3TinyTest --stop_on_mismatch --use_vulkan
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_1ch_mrt 1 1
-./yolov3TinyTest --use_1ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_compute --use_half --dump_outputs yolov3tiny
+./yolov3TinyTest --use_half --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest --use_1ch_mrt --use_half 1 1
-./yolov3TinyTest --use_1ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_1ch_mrt --dump_outputs yolov3tiny
+./yolov3TinyTest --use_1ch_mrt --stop_on_mismatch
 
-rm -rf ../../../../core/inferenceCoreDump/*;
-./inferenceProcessorTest 1 1
-./yolov3TinyTest --use_2ch_mrt
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_1ch_mrt --use_half --dump_outputs yolov3tiny
+./yolov3TinyTest --use_1ch_mrt --use_half --stop_on_mismatch
+
+rm -rf ../../../../core/inferenceCoreDump/*
+./inferenceProcessorTest --use_2ch_mrt --dump_outputs yolov3tiny
+./yolov3TinyTest --use_2ch_mrt --stop_on_mismatch
+
+echo "done"
 
 cd ../../../

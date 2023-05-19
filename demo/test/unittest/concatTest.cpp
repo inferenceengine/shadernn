@@ -32,12 +32,15 @@
 #include "matutil.h"
 #include "shaderUnitTest.h"
 
-static int test_concate(int w, int h, int c, std::string activation) {
-    ncnn::Mat matA = RandomMat(w, h, c);
-    // ncnn::Mat matB = RandomMat(w, h, c);
-    ncnn::Mat matB = matA;
+// Global namespace is polluted somewhere
+#ifdef Success
+#undef Success
+#endif
+#include "CLI/CLI.hpp"
 
-    pretty_print_ncnn(matA);
+static int test_concate(int w, int h, int c, const std::string& activation, snn::GpuBackendType backend, bool printMismatch) {
+    ncnn::Mat matA = RandomMat(w, h, c);
+    ncnn::Mat matB = matA;
 
     std::vector<ncnn::Mat> resNCNN;
 
@@ -58,13 +61,9 @@ static int test_concate(int w, int h, int c, std::string activation) {
         fprintf(stderr, "test_concate failed a.dims=%d a=(%d %d %d) b.dims=%d b=(%d %d %d)\n", matA.dims, matA.w, matA.h, matA.c, matB.dims, matB.w, matB.h,
                 matB.c);
     }
-    if (resNCNN.size() > 0) {
-        SNN_LOGI("OUTPUT FROM NCNN CONCAT0\n");
-        pretty_print_ncnn(resNCNN.at(0));
-    }
 
     ab[0] = matA;
-    ab[1] = resNCNN.at(0);
+    ab[1] = resNCNN[0];
     std::vector<ncnn::Mat> resNCNN1;
     int ret1 = test_layer_naive<ncnn::Concat>(ncnn::layer_to_index("Concat"), pd, weights, ab, 2, resNCNN1, (void (*)(ncnn::Concat*)) 0, 0);
     if (ret1 != 0 || resNCNN1.size() == 0) {
@@ -72,40 +71,41 @@ static int test_concate(int w, int h, int c, std::string activation) {
         fprintf(stderr, "test_concate failed a.dims=%d a=(%d %d %d) b.dims=%d b=(%d %d %d)\n", matA.dims, matA.w, matA.h, matA.c, ab[1].dims, ab[1].w, ab[1].h,
                 ab[1].c);
     }
-    if (resNCNN1.size() > 0) {
-        SNN_LOGI("OUTPUT FROM NCNN CONCAT1\n");
-        pretty_print_ncnn(resNCNN1.at(0));
-    }
 
-    //    auto rc = gl::RenderContext(gl::RenderContext::STANDALONE);
-    ShaderUnitTest test;
+    ShaderUnitTest test(backend);
 
     cv::Mat inputMat1 = NCNNMat2CVMat(matA);
     cv::Mat inputMat2 = NCNNMat2CVMat(matB);
 
-    printf("%%%%%%%% %s:%d\n", __FUNCTION__, __LINE__);
-
     auto outFile = test.snnConcateTestWithLayer(inputMat1, w, h, c, 1, 1, activation);
-
     printf("Output file:%s\n", formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str());
     auto snnOutput = getSNNLayer(formatString("%s/%s", DUMP_DIR, outFile.c_str()).c_str(), false, c + 2 * c);
 
-    printf("pretty_print_ncnn: resNCNN.at(0)\n");
-    pretty_print_ncnn(resNCNN.at(0));
-    printf("\n\npretty_print_ncnn: snnOutput\n");
-    pretty_print_ncnn(snnOutput);
-
-    ret = CompareMat(resNCNN1.at(0), snnOutput, 0.1);
-
-    printf("test_concat test res: %d\n", ret);
+    ret = CompareMat(resNCNN1[0], snnOutput, 0.1);
+    printf("concat test res: %d\n", ret);
+    if (ret && printMismatch) {
+        pretty_print_ncnn(resNCNN1[0]);
+        pretty_print_ncnn(snnOutput, "SNN");
+    }
 
     return ret;
 }
 
-int main() {
+int main(int argc, char **argv) {
     SRAND(7767517);
 
-    test_concate(5, 7, 4, "relu");
+    bool useVulkan = false;
+    bool printMismatch = false;
+
+    CLI::App app;
+    app.add_flag("--use_vulkan", useVulkan, "Use Vulkan");
+    app.add_flag("--print_mismatch", printMismatch, "Print results mismatch");
+    CLI11_PARSE(app, argc, argv);
+    CHECK_PLATFORM_SUPPORT(useVulkan)
+
+    snn::GpuBackendType backend = useVulkan ? snn::GpuBackendType::VULKAN : snn::GpuBackendType::GL;
+
+    test_concate(5, 7, 4, "relu", backend, printMismatch);
 
     return 0;
 }

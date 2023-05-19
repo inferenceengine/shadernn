@@ -14,18 +14,12 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "snn/inferencegraph.h"
+#include "modelparser.h"
+#include <string>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -39,17 +33,15 @@ struct AddDesc : public CommonLayerDesc {
     }
 };
 
+// This is a base class to generates a shader for add function
+// It also fuses the activation function
 class AddLayer : public ShaderLayer {
 public:
     AddLayer(AddDesc&& d): ShaderLayer(d), _desc(std::move(d)) {}
-    ~AddLayer() {}
+    virtual ~AddLayer() = default;
     InferenceGraph::Transform getOutputScaleDimAdjustment() const override { return {0, {{1.0f, 1.0f, 0.0f, 0.0f}}}; };
 
 protected:
-    GLSLShaders createFS(const LayerGenOptions&) const override;
-    GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
     AddDesc _desc;
 };
 

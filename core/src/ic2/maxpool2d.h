@@ -14,18 +14,11 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
@@ -39,27 +32,15 @@ struct MaxPooling2DDesc : GenericConvDesc {
     }
 };
 
+// This is a base class to generates a shader for maxpooling
 class MaxPooling2DLayer : public GenericConvolutionLayer {
 public:
     MaxPooling2DLayer(MaxPooling2DDesc&& d): GenericConvolutionLayer(d), _desc(std::move(d)) {}
-    ~MaxPooling2DLayer() {}
+    virtual ~MaxPooling2DLayer() = default;
     InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
 
 protected:
-    GLSLShaders createFS(const LayerGenOptions&) const override;
-    GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
     MaxPooling2DDesc _desc;
-    void buildPreDefine(std::ostringstream& stream, const LayerGenOptions& options, const std::string& shaderFilePath) const;
-
-    void buildTextureDefLogic(std::ostream& stream, uint32_t inputSliceIndex) const;
-
-    void buildCalcDefLogic(std::ostream& stream) const;
-
-    void buildComputePostDefine(std::ostream& stream, uint32_t outputSliceIndex) const;
-
-    void buildFragPostDefine(std::ostream& stream) const;
 
     void getPaddingOffset(uint32_t (&offsets)[4]) const;
 };

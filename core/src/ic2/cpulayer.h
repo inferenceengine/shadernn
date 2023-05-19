@@ -14,22 +14,23 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
+#include "snn/snn.h"
+#include "snn/utils.h"
+#include "Eigen/Dense"
 #include <string>
-
-#include <Eigen/Dense>
+#include <cstring>
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include <utility>
+#include <algorithm>
+#include <numeric>
+#include <optional>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
+// This is set of classes and to perform computations on CPU
 template<typename T>
 struct CPUCommonUtil {
     typedef enum class ActivationFunction { RELU, LEAKY_RELU, SIGMOID, SOFTMAX, TANH, SILU, IDENTITY } ActivationFunction;
@@ -40,9 +41,9 @@ struct CPUCommonUtil {
         {"tanh", ActivationFunction::TANH},         {"SiLU", ActivationFunction::SILU},
         {"identity", ActivationFunction::IDENTITY}, {"", ActivationFunction::IDENTITY}};
 
-    // CPUProgram pass only stores input and output in vec<vec<float>>
+    // CPU pass only stores input and output in vec<vec<float>>
     std::optional<std::vector<std::vector<T>>> inputMat;
-    std::optional<std::vector<std::shared_ptr<snn::ManagedRawImage>>> gpuTexMat;
+    std::optional<std::vector<std::shared_ptr<snn::RawImage>>> gpuTexMat;
     std::vector<std::vector<T>> outputMat;
     std::string activationClass;
     std::optional<float> alpha;
@@ -71,7 +72,7 @@ struct CPUCommonUtil {
         }
     }
 
-    void flatten2d(std::vector<std::shared_ptr<snn::ManagedRawImage>>& inputMat, std::vector<T>& outputMat) {
+    void flatten2d(std::vector<std::shared_ptr<snn::RawImage>>& inputMat, std::vector<T>& outputMat) {
         for (auto image : inputMat) {
             uint32_t size       = image->size();
             auto rawDataPointer = image->data();
@@ -80,32 +81,12 @@ struct CPUCommonUtil {
             uint32_t height   = image->height();
             uint32_t depth    = image->depth();
             uint32_t channels = image->channels();
+            SNN_ASSERT(channels > 0);
             auto format       = image->format();
             auto formatDesc   = snn::getColorFormatDesc(format);
-            if (channels == 0) {
-                channels = depth * 4;
-            }
-            uint32_t channelPerPlane = 4;
-            assert(width * height * depth * (formatDesc.bits / 8) == size);
-            // for (std::size_t row = 0; row < width; row++) {
-            //     for (std::size_t column = 0; column < height; column++) {
-            //         for (std::size_t channel = 0; channel < depth; channel++) {
-            //             uint32_t offset = channel + depth * row + depth * width * column;
-            //             std::vector<uint8_t> floatData;
-            //             T data = 0.0;
-            //             std::size_t byteSize = sizeof(data);
-            //             for (std::size_t j = 0; j < byteSize; j++) {
-            //                 floatData.push_back(dataArray.at(offset + j));
-            //             }
-            //             std::memcpy(&data, floatData.data(), sizeof(data));
-            //             outputMat.push_back(data);
-            //             // if (offset % 50 == 0) {
-            //             //     SNN_LOGI("Value at %lu, %lu, %lu is %f", row, column, channel, data);
-            //             // }
-            //             floatData.clear();
-            //         }
-            //     }
-            // }
+            uint32_t channelPerPlane = formatDesc.ch;
+            SNN_ASSERT(channelPerPlane == 4);
+            SNN_ASSERT(width * height * depth * formatDesc.bytes() == size);
             std::vector<std::size_t> indices(size);
             std::vector<std::size_t> reorderedIndices;
             std::iota(indices.begin(), indices.end(), 0);
@@ -116,6 +97,7 @@ struct CPUCommonUtil {
                         for (std::size_t channel = 0; channel < channelPerPlane; channel++) {
                             std::size_t index;
                             if (plane == depth - 1) {
+                                SNN_ASSERT(channels >= plane * channelPerPlane);
                                 uint32_t nChannels = channels - plane * channelPerPlane;
                                 if (channel < nChannels) {
                                     index = channel + nChannels * column + nChannels * width * row + nChannels * height * width * plane;
@@ -130,22 +112,6 @@ struct CPUCommonUtil {
                     }
                 }
             }
-            // std::vector<std::size_t> indices(size);
-            // std::vector<std::size_t> reorderedIndices;
-            // std::iota(indices.begin(), indices.end(), 0);
-            // std::size_t byteSize = sizeof(T);
-            // for (std::size_t row = 0; row < height; row++) {
-            //     for (std::size_t column = 0; column < width; column++) {
-            //         for (std::size_t plane = 0; plane < depth; plane++) {
-            //             for (std::size_t channel = 0; channel < channelPerPlane; channel++) {
-            //                 std::size_t index = channel + channelPerPlane * row + channelPerPlane * height * column + channelPerPlane * height * width *
-            //                 plane; reorderedIndices.push_back(indices.at(byteSize * index));
-            //             }
-            //         }
-            //     }
-            // }
-
-            // std::size_t byteSize = sizeof(T);
             for (auto i : reorderedIndices) {
                 // for ( size_t i = 0; i < size; i += byteSize ) {
                 std::vector<uint8_t> floatData;
@@ -202,8 +168,6 @@ struct CPUCommonUtil {
         for (auto row : outputs.colwise()) {
             this->outputMat.push_back(std::vector<T>(row.begin(), row.end()));
         }
-
-        // this->outputMat(&outputs[0], outputs.data() + outputs.rows()*outputs.cols());
     }
 
     void leakyRelu(T& inputVal, float alpha) { inputVal = inputVal > 0 ? inputVal : alpha * inputVal; }
@@ -298,19 +262,13 @@ struct CPUCommonUtil {
 
     void run(std::pair<std::vector<std::vector<T>>, std::vector<T>>& transformMats) {
         this->transform(transformMats);
-        // std::cout << "----------- [DEBUG ACTIVATION IN] -----------" << std::endl;
-        // for (auto val : this->outputMat.at(0)) {
-        //     std::cout << val << std::endl;
-        // }
-        // std::cout << "---------------------------------------------" << std::endl;
         this->activation();
     }
 
-    void getOutputs(std::vector<std::vector<T>>& outputs) {
-        outputs = outputMat;
-        // Sanitize the outputs
-
-        outputMat = std::vector<std::vector<T>>();
+    std::vector<std::vector<T>> getOutputs() {
+        std::vector<std::vector<T>> mat;
+        mat.swap(outputMat);
+        return mat;
     }
 };
 

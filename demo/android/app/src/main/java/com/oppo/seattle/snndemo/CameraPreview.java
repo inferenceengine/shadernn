@@ -64,19 +64,16 @@ class CameraPreview implements ImageReader.OnImageAvailableListener {
      */
     private MediaRecorder mMediaRecorder;
 
-    private Size mVideoSize = new Size(1920, 1080);
     private String mNextVideoAbsolutePath;
-    private boolean reno60fps = false;
 
     @SuppressLint("MissingPermission")
-    void startCamera(CameraManager cameraManager, int displayRotation) {
+    void startCamera(CameraManager cameraManager, int displayRotation, Handler handler) {
         startBackgroundThread();
         try {
             String cameraId = cameraManager.getCameraIdList()[0];
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
-            // Find out if we need to swap dimension to get the preview size relative to sensor
+            // TODO: Find out if we need to swap dimension to get the preview size relative to sensor
             // coordinate.
-            //noinspection ConstantConditions
             int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
             rotationDegrees = getRotationDegrees(displayRotation, sensorOrientation);
             Log.d(TAG, "displayRotation: " + displayRotation);
@@ -127,7 +124,7 @@ class CameraPreview implements ImageReader.OnImageAvailableListener {
                 public void onError(@NonNull CameraDevice camera, int error) {
 
                 }
-            }, null);
+            }, handler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -223,108 +220,48 @@ class CameraPreview implements ImageReader.OnImageAvailableListener {
             Surface recorderSurface = mMediaRecorder.getSurface();
             /* We only need one output */
             requestBuilder.addTarget(surface);
-            //requestBuilder.addTarget(snapshotSurface);
-            //requestBuilder.addTarget(recorderSurface);
 
-//            RecordingManager rm = RecordingManager.getInstance();
-//            Surface recordingSurface = rm.getSurface(previewSize.getWidth(), previewSize.getHeight());
-//            requestBuilder.addTarget(recordingSurface);
-
-            Log.w(TAG, "Model:" + Build.MODEL);
-            String model = Build.MODEL;
-            String reno10x = "PCCM00";
-//            if(model.equals(reno10x)) {
-//                Log.w(TAG, "Model is OPPO Phone (Reno 10X)... 60fps");
-//                reno60fps = true;
-//                List<OutputConfiguration> currentOutputs = new ArrayList<>();
-//                currentOutputs.add(new OutputConfiguration(surface));
-//                currentOutputs.add(new OutputConfiguration(snapshotSurface));
-//                currentOutputs.add(new OutputConfiguration(recorderSurface));
-//                cameraDevice.createCustomCaptureSession(null,
-//                        currentOutputs,
-//                        0x8021
-//                    /*  0x8001 => OPERATING_MODE_CAPTURE
-//                        0x800B => OPERATING_MODE_VIDEO --> Working
-//                        0x800C => OPERATING_MODE_FAST_VIDEO
-//                        0x8021 => OPERATING_MODE_VIDEO_HIGH_FPS : CapMode60FpsVideo */,
-//                        new CameraCaptureSession.StateCallback() {
-//                            @Override
-//                            public void onConfigured(@NonNull CameraCaptureSession session) {
-//                                if (cameraDevice == null)
-//                                    return;
-//
-//                                requestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-//                                try {
-//                                    Range<Integer> frameRate = Range.create(60, 60);
-//                                    requestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, frameRate);
-//                                    List<CaptureRequest> requestList = new ArrayList<>();
-//                                    requestList.add(requestBuilder.build());
-//
-//                                    session.setRepeatingBurst(requestList, new CameraCaptureSession.CaptureCallback() {
-//                                        @Override
-//                                        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-//                                            super.onCaptureCompleted(session, request, result);
-//                                            Long timeStamp = result.get(TotalCaptureResult.SENSOR_TIMESTAMP);
-//                                            Integer exposureCompensation = result.get(TotalCaptureResult.CONTROL_AE_EXPOSURE_COMPENSATION);
-//                                            if (exposureCompensation < lowExposureCompensation) {
-//                                                lowExposureCompensation = exposureCompensation;
-//                                            }
-//                                            NativeLibrary.queueMetaData(timeStamp, exposureCompensation == lowExposureCompensation);
-//                                        }
-//                                    }, backgroundHandler);
-//                                } catch (CameraAccessException e) {
-//                                    e.printStackTrace();
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-//
-//                            }
-//                        }, null);
-//            } else {
-
-                Log.w(TAG, "Model is not OPPO Phone... 30fps");
-                cameraDevice.createCaptureSession(Arrays.asList(surface),
-                        new CameraCaptureSession.StateCallback() {
-                            @Override
-                            public void onConfigured(@NonNull CameraCaptureSession session) {
-                                if (cameraDevice == null)
-                                    return;
-
-                                requestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-                                try {
-                                    session.setRepeatingRequest(requestBuilder.build(), new CameraCaptureSession.CaptureCallback() {
-                                        @Override
-                                        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                                            super.onCaptureCompleted(session, request, result);
-                                            Long timeStamp = result.get(TotalCaptureResult.SENSOR_TIMESTAMP);
-                                            Integer exposureCompensation = result.get(TotalCaptureResult.CONTROL_AE_EXPOSURE_COMPENSATION);
-                                            if (exposureCompensation < lowExposureCompensation) {
-                                                lowExposureCompensation = exposureCompensation;
-                                            }
-                                            NativeLibrary.queueMetaData(timeStamp, exposureCompensation == lowExposureCompensation);
+            Log.i(TAG, "Model:" + Build.MODEL);
+            cameraDevice.createCaptureSession(Arrays.asList(surface),
+                new CameraCaptureSession.StateCallback() {
+                    @Override
+                    public void onConfigured(@NonNull CameraCaptureSession session) {
+                        if (cameraDevice == null) {
+                            return;
+                        }
+                        requestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+                        try {
+                            session.setRepeatingRequest(requestBuilder.build(),
+                                new CameraCaptureSession.CaptureCallback() {
+                                    @Override
+                                    public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                                        super.onCaptureCompleted(session, request, result);
+                                        Long timeStamp = result.get(TotalCaptureResult.SENSOR_TIMESTAMP);
+                                        Integer exposureCompensation = result.get(TotalCaptureResult.CONTROL_AE_EXPOSURE_COMPENSATION);
+                                        if (exposureCompensation < lowExposureCompensation) {
+                                            lowExposureCompensation = exposureCompensation;
                                         }
-                                    }, backgroundHandler);
-                                } catch (CameraAccessException e) {
-                                    e.printStackTrace();
-                                }
-                            }
+                                        NativeLibrary.queueMetaData(timeStamp, exposureCompensation == lowExposureCompensation);
+                                    }
+                            }, backgroundHandler);
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
 
-                            @Override
-                            public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-
-                            }
-                        }, backgroundHandler);
-    //        }
+                    @Override
+                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                    }
+                }, backgroundHandler);
         } catch (CameraAccessException | IOException e) {
             e.printStackTrace();
         }
     }
 
     void stopCamera() {
-        if (cameraDevice != null)
+        if (cameraDevice != null) {
             cameraDevice.close();
+        }
         stopBackgroundThread();
     }
 
@@ -332,43 +269,21 @@ class CameraPreview implements ImageReader.OnImageAvailableListener {
     public void onImageAvailable(ImageReader reader) {
         Image image = reader.acquireNextImage();
         if (image != null) {
-            //Log.i(TAG, "Image format " +  image.getFormat()  + "?" + ImageFormat.YUV_420_888);
             long timestamp = image.getTimestamp();
             Image.Plane[] planes = image.getPlanes();
-            if ((planes.length != 3)) throw new AssertionError();
+            assert(planes.length == 3);
             int rowStride = planes[0].getRowStride();
-            if ((rowStride != image.getWidth())) throw new AssertionError();
-
+            assert(rowStride == image.getWidth());
             Image.Plane yPlane = planes[0];
-            if (yPlane.getPixelStride() != 1) throw new AssertionError();
+            assert(yPlane.getPixelStride() == 1);
             ByteBuffer yBuffer = yPlane.getBuffer();
 
             Image.Plane uPlane = planes[1];
             Image.Plane vPlane = planes[2];
-            if (reno60fps) {
-                // For some reason, the UV planes get swapped in this capture mode.
-                // In the normal capture mode, both on this and other devices (i.e. Pixel 4), the
-                // U and V planes are interlaced in VU order (NV21 format).  In NV21 format
-                // Image.getPlanes()[1] should represent the U channel and start with the second
-                // byte of the UV block, while Image.getPlanes()[2] should represent the V channel
-                // and start with the first byte.
-                // In this capture mode, however, the U and V values are stored in UV order
-                // (NV12 format), which itself isn't so bad, except that planes returned
-                // by Image.getPlanes() still point to the same bytes they would if the frame was
-                // in NV21 format.  This means that planes[1] actually represents the V
-                // channel, while planes[2] actually represents the U channel.
-                // This is at odds with the Android documentation for ImageFormat.YUV_420_888:
-                //  "The order of planes in the array returned by Image#getPlanes() is guaranteed
-                //  such that plane #0 is always Y, plane #1 is always U (Cb), and plane #2 is
-                //  always V (Cr)."
-                //  https://developer.android.com/reference/android/graphics/ImageFormat#YUV_420_888
-                uPlane = planes[2];
-                vPlane = planes[1];
-            }
-            if ((uPlane.getRowStride() != rowStride)) throw new AssertionError();
+            assert(uPlane.getRowStride() == rowStride);
             int pixelStride = uPlane.getPixelStride();
-            if ((vPlane.getPixelStride() != pixelStride)) throw new AssertionError();
-            if (pixelStride != 2) throw new AssertionError();
+            assert(vPlane.getPixelStride() == pixelStride);
+            assert(pixelStride == 2);
             ByteBuffer uBuffer = uPlane.getBuffer();
             ByteBuffer vBuffer = vPlane.getBuffer();
 

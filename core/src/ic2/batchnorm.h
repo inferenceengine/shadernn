@@ -14,24 +14,18 @@
  */
 #pragma once
 
-#include <snn/snn.h>
-#include <snn/utils.h>
-#include <snn/imageTexture.h>
-#include "inferencegraph.h"
-#include "modelparser.h"
-#include <utility>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/opencv.hpp>
-#include <set>
-#include <string>
-
 #include "genericlayer.h"
+#include "snn/snn.h"
+#include "modelparser.h"
+#include <string>
+#include <vector>
+#include <map>
+#include <utility>
 
 namespace snn {
 namespace dp { // short for Dynamic Pipeline
 
 struct BatchNormalizationDesc : GenericConvDesc {
-    bool preferrHalfPrecision = false;
     float leakyReluAlpha;
     std::map<std::string, std::vector<float>> batchNormalization;
     void parse(ModelParser& parser, int layerId) {
@@ -41,26 +35,19 @@ struct BatchNormalizationDesc : GenericConvDesc {
     }
 };
 
+// This is a base class to generates a shader for batch normalization function
 class BatchNormalizationLayer : public GenericConvolutionLayer {
 public:
     BatchNormalizationLayer(BatchNormalizationDesc&& d): GenericConvolutionLayer(d), _desc(std::move(d)) {}
-    ~BatchNormalizationLayer() {}
-    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override;
+    virtual ~BatchNormalizationLayer() = default;
+
+    virtual InferenceGraph::Transform getOutputScaleDimAdjustment() const override {
+        return {0, {{1.0f, 1.0f, 0.0f, 0.0f}} };
+    }
 
 protected:
-    virtual GLSLShaders createFS(const LayerGenOptions&) const override;
-    virtual GLSLShaders createCS(const LayerGenOptions&) const override;
-
-private:
     BatchNormalizationDesc _desc;
-
-    void getBatchNormalizationConstants(std::vector<std::ostringstream>& batchNormalizationConstants, const int shaderPass, const int outputChannels) const;
-
-    // Adds predefine to given stringstream.
-    // shaderFilePath is the path of the file template this will be appended to
-    // and is used to label the preDefine.
-    void buildPreDefine(std::ostringstream& stream, const LayerGenOptions& options, const std::string& shaderFilePath) const;
 };
 
-}; // namespace dp
+} // namespace dp
 } // namespace snn
