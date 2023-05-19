@@ -6,6 +6,15 @@
  
 ##  Build ShaderNN Core
 
+Select OpenGL or Vulkan backend first:
+```
+% // Select OpenGL backend
+% cd core
+% ./config.sh gl
+% // Select Vulkan backend
+% cd core
+% ./config.sh vulkan
+```
 
 Core offers two broad build targets at the moment: Android, Linux
 
@@ -53,9 +62,9 @@ Build:
 Flash:
 ```
 % cd demo/android/
-% // With Models
+% // flash with model files
 % ./flash.sh models
-% // Without Models
+% // flash without model files
 % ./flash.sh
 ```
 
@@ -94,26 +103,19 @@ Run:
 
 To test the inference on a model, we use NCNN as the basline. First, you need to run inferenceprocessorTest, which will run the model in ShaderNN, and dump the intermediate results into the local folder. Then you can run the modelTest to compare the ShaderNN intermediate results with NCNN results layer by layer. 
 
-inferenceprocessorTest takes two more parameters, the second from last parameter is the model index, and the last parameter specifies if dump the output for test (0: no dump, 1: dump). You can also specify which shader option used to run: 
+inferenceprocessorTest takes multiple parameters, you can also specify one or more of those parameters used to run: 
 
-- --use_compute : using computer shader first. 
-- --use_1ch_mrt : use fragment shader and render 1 channel (RGBA) per pass. 
-- --use_2ch_mrt:  use fragment shader and render 2 channels (RGBA) per pass.
-- --use_half: ShaderNN will use FP32 by default, and you can use this option to specify FP16
+- --use_vulkan : Use Vulkan backend. 
+- --use_compute : Use compute shader (OpenGL only). 
+- --use_1ch_mrt:  Use single plane MRT (OpenGL only).
+- --use_2ch_mrt: Use double plane MRT (OpenGL only).
+- --use_constants: Store weight as constants (OpenGL only).
+- --use_use_half: Use half-precision floating point values (fp16).
+- --use_finetuned: Use fine-tuned models.
+- --dump_outputs: Dump outputs.
+- --inner_loops: Number of inner loops (after model loading).
+- --outer_loops: Number of outer loops (before model loading).
+- model: use one of {resnet18 | yolov3tiny | unet | mobilenetv2 | spatialdenoise | aidenoise | styletransfer | espcn2x}
 
-Model index:  
-- 0: Resnet18
-- 1: Yolov3Tiny
-- 2: UNet 
-- 3: MobilenetV2
-- 4: SpatialDenoiser 
-- 5: AIDenoiser
-- 6: StyleTransfer
+You can refer to unit test for resnet18 test_resnet18.sh as example. 
 
-Below shows inference Resnet18 network with output dumped
-```
-% cd build-test/test/unittest/
-% ./inferenceProcessorTest --use_compute 0 1
-% // After above inference complete with output dumped, then compare the layer and end to end results with NCNN, below is to compare Resnet18
-% ./resnet18Test --use_compute
-```

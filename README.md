@@ -1,27 +1,34 @@
 ![ShaderNN logo](docs/images/logo.png)
 
+## ShaderNN 2.0 preview  release is available now!
+&nbsp;
+
 ## What is ShaderNN?
  ShaderNN is a lightweight deep learning inference framework optimized for Convolutional Neural Networks. It provides high-performance inference for deep learning applications in image and graphics process on mobile devices.
  ![ShaderNN workflow](docs/images/workflow.png)
 
-## Why use ShaderNN?
-- Targeted for real time graphic and image post-processing
-  - Directly operate the texture data of graphics graphics and image applications, save big I/O time which is critical for real time application on mobile platforms;
-  - Native OpenGL ES based, easily integrate with the graphics rendering pipeline to maximize the use of computing resources, suits for rendering, image/video and game AI applications;
+## Innovations of ShaderNN:
+- Use texture-based input/output, which provides an efficient, zero-copy integration with real-time graphics pipeline or image processing applications, thereby saving expensive data transfers & format conversion between CPU and GPU which is critical for real time application on mobile platforms.
+ ![Inference Engine Integration](docs/images/inferenceengineintegration.png)
+
+- Leverage the fragment shader based on OpenGL backend in the neural network inference operators, which is advantageous when deploying parametrically small neural network modes.
+
+- Built on native OpenGL ES and Vulkan, which can be easily integrated with the graphics rendering pipeline to maximize the use of computing resources, suits for rendering, image/video and game AI applications.
+
+- Enable a hybrid implementation of compute and fragment shaders, with the ability to select layer-level shaders for performance optimization.
+
+## Key features of shaderNN:
 - High Performance
-  - Makes full use of the parallel computing advantages of GPU Shader to implement core operators;
-  - Pre-building the static computation graph for inference first and then running it, compared to the dynamic graph, the graph structure can be optimized before running, such as constant folding, operator fusion, etc., which can obtain faster forward operation speed;
-  - When the model is running, the running backend will be selected statically or dynamically according to the platform resources, and the running parameters of the kernel will be dynamically adjusted to achieve the best energy consumption utilization at runtime
-  - Optimizes for Convolutional Neural Networks to improve real-time performance;
-  - Supports heterogeneous device hybrid computing, and currently supports CPU and GPU;
-  - Provides a demo app pipeline optimized for throughput over latency, minimized data transfer and optimized for video processing
+  - Utilize GPU Shader: Implement core operators using GPU Shader to leverage parallel computing capabilities for optimal performance.
+  - Pre-built Static Computation Graph: Optimize with constant folding and operator fusion to accelerate forward operation speed.
 - Lightweight & Portability & Extensibility
-  - OpenGL-based does not require reliance on other third-party technology libraries and optimized for mobile platforms,  making it easy to port, deploy and upgrade;
-  - Simple input/output interface, compatible with GPU processing;
+  - No Third-Party Library Dependencies: Ensure independence from external libraries, reducing overhead and simplifying integration.
+  - Mobile Platform Optimization: Optimize specifically for mobile platforms, enabling effortless portability, deployment, and upgrades.
+  - Simple Input/Output Interface: Provide a user-friendly interface compatible with GPU processing for streamlined interactions.
 - Versatility
-  - Supports popular framework formats such as TensorFlow/PyTorch/ONNX;
-  - Supports popular Convolutional Neural Networks (CNN), such image classification, object detection, image segmentation, image enhancement;
-  - Supports user-defined operators, convenient to implement new operators and models;
+  - Framework & CNN network Compatibility: Support popular framework formats like TensorFlow, PyTorch, and ONNX. Support common classification, detection, segmentation, and enhancement networks.
+  - User-Defined Operators: Enable easy implementation of new models by supporting user-defined operators.
+  - Flexible backend configure: Select the running backend statically or dynamically according to the platform resources during model execution, dynamically adjusting kernel running parameters for minimal energy consumption at runtime.
 
 ## Typical Application Scenerios:
   - ShaderNN is good at graphics and image processing pipelines, and here listed some typical scenerios, such as ray tracing denoise, deep learning super sampling, high dynamic range, super resolution and style transfer etc.\
@@ -72,6 +79,8 @@ ShaderNN makes use of the following third party libraries:
 - [picojson](https://github.com/kazuho/picojson)
 - [stb_image](https://github.com/nothings/stb)
 - [readerwriterqueue](https://github.com/cameron314/readerwriterqueue/)
+- [uVkCompute](https://github.com/google/uVkCompute)
+- [volk](https://github.com/zeux/volk)
 
 ShaderNN makes use of models trained and converted from Tensorflow, PyTorch and ONNX, and uses Netron visualizer:
 - [Tensorflow](https://github.com/tensorflow/tensorflow)
